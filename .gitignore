@@ -1,0 +1,2 @@
+# graphbuilder output is a regenerable build artifact (run: go run . in graphbuilder/)
+graphbuilder/output/

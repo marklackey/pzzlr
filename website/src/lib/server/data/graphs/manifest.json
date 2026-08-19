@@ -1,0 +1,38 @@
+[
+  {
+    "length": 3,
+    "wordCount": 1119,
+    "edgeCount": 8980,
+    "isolated": 1
+  },
+  {
+    "length": 4,
+    "wordCount": 4062,
+    "edgeCount": 21635,
+    "isolated": 66
+  },
+  {
+    "length": 5,
+    "wordCount": 8699,
+    "edgeCount": 24627,
+    "isolated": 796
+  },
+  {
+    "length": 6,
+    "wordCount": 14953,
+    "edgeCount": 24057,
+    "isolated": 3415
+  },
+  {
+    "length": 7,
+    "wordCount": 22599,
+    "edgeCount": 23448,
+    "isolated": 8039
+  },
+  {
+    "length": 8,
+    "wordCount": 27750,
+    "edgeCount": 13819,
+    "isolated": 13768
+  }
+]
