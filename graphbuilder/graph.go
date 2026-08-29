@@ -45,7 +45,13 @@ func buildGraphForLength(length int, words []string) *LengthGraph {
 		}
 	}
 
+	// A nil slice marshals to JSON `null`, not `[]` — words with no
+	// neighbors need an explicit empty slice here so consumers reading the
+	// output always get an array back, never null, for every word.
 	adjacency := make([][]int, len(words))
+	for i := range adjacency {
+		adjacency[i] = []int{}
+	}
 	for _, group := range patterns {
 		if len(group) < 2 {
 			continue

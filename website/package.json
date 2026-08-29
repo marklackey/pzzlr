@@ -5,7 +5,7 @@
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
-		"build": "vite build",
+		"build": "npm run sync-sdk && vite build",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
@@ -14,14 +14,26 @@
 		"format": "prettier --write .",
 		"test:unit": "vitest",
 		"test": "npm run test:unit -- --run",
-		"sync-graphs": "mkdir -p src/lib/server/data/graphs && cp ../graphbuilder/output/*.json src/lib/server/data/graphs/"
+		"sync-graphs": "rm -rf src/lib/server/data/graphs && mkdir -p src/lib/server/data/graphs && cp -R ../graphbuilder/output/. src/lib/server/data/graphs/",
+		"sync-sdk": "mkdir -p static/sdk && cp ../sdk/dist/pzzlr-sdk.js static/sdk/pzzlr-sdk.js",
+		"db:generate": "drizzle-kit generate",
+		"db:migrate": "wrangler d1 migrations apply pzzlr --local",
+		"db:migrate:remote": "wrangler d1 migrations apply pzzlr --remote",
+		"db:seed": "wrangler d1 execute pzzlr --local --file=scripts/seed.sql",
+		"db:seed:remote": "wrangler d1 execute pzzlr --remote --file=scripts/seed.sql",
+		"deploy": "npm run build && wrangler deploy"
 	},
 	"devDependencies": {
+		"@cloudflare/workers-types": "^5.20260826.1",
 		"@eslint/js": "^10.0.1",
-		"@sveltejs/adapter-auto": "^7.0.1",
+		"@sveltejs/adapter-cloudflare": "^7.2.9",
 		"@sveltejs/kit": "^2.63.0",
 		"@sveltejs/vite-plugin-svelte": "^7.1.2",
 		"@types/node": "^24",
+		"auth": "^1.6.23",
+		"better-auth": "^1.6.23",
+		"drizzle-kit": "^0.31.10",
+		"drizzle-orm": "^0.45.2",
 		"eslint": "^10.4.1",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-svelte": "^3.19.0",
@@ -33,6 +45,11 @@
 		"typescript": "^6.0.3",
 		"typescript-eslint": "^8.60.1",
 		"vite": "^8.0.16",
-		"vitest": "^4.1.8"
+		"vitest": "^4.1.8",
+		"wrangler": "^4.126.0"
+	},
+	"dependencies": {
+		"@better-auth/api-key": "^1.7.1",
+		"jose": "^6.2.9"
 	}
 }

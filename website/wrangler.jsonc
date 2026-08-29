@@ -1,0 +1,30 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "pzzlr",
+	"main": ".svelte-kit/cloudflare/_worker.js",
+	"compatibility_date": "2026-08-26",
+	// Not a secret — just the deployed URL better-auth needs as its baseURL
+	// for cookies/redirects. Keep this in sync with whichever of the routes
+	// below is the canonical one (and with the Apple Services ID's
+	// Domain/Return URL).
+	"vars": {
+		"ORIGIN": "https://pzzlr.app"
+	},
+	// pzzlr.app's zone lives on this same Cloudflare account (nameservers
+	// pointed here from DNSimple) — this provisions the cert and routes it
+	// to this Worker. Adding an explicit route like this flips wrangler's
+	// workers_dev default to off, so the old hikesafe.workers.dev URL is no
+	// longer live — pzzlr.app is now the only address this Worker answers on.
+	"routes": [{ "pattern": "pzzlr.app", "custom_domain": true }],
+	"assets": {
+		"binding": "ASSETS",
+		"directory": ".svelte-kit/cloudflare"
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "pzzlr",
+			"database_id": "22e732a7-1ce4-413c-911a-764d85493510"
+		}
+	]
+}

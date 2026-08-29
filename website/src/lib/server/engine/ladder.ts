@@ -1,4 +1,5 @@
 import type { WordGraph } from './graph';
+import { DEFAULT_EPOCH, dailyIndices, dailyRandom, puzzleNumberFor } from './daily-seed';
 
 /** A candidate ladder puzzle: get from `start` to `end`, both words of `length`. */
 export interface LadderPuzzle {
@@ -93,6 +94,13 @@ export interface PickPuzzleOptions {
 	maxAttempts?: number;
 	/** Injectable for deterministic tests. Default Math.random. */
 	random?: () => number;
+	/** Fix the end word instead of sampling it randomly (e.g. a fixed daily target). */
+	end?: string;
+}
+
+interface PuzzleWithPath extends LadderPuzzle {
+	/** The shortest start->end path pickPuzzle already had to compute to find this pair — handed to pickDailyPuzzle so it doesn't re-run the same search. */
+	path: string[];
 }
 
 /**
@@ -101,21 +109,133 @@ export interface PickPuzzleOptions {
  * all, so this can fail to find a match — callers should treat a null
  * result as "try a shorter word length" rather than retry indefinitely.
  */
-export function pickPuzzle(graph: WordGraph, options: PickPuzzleOptions = {}): LadderPuzzle | null {
-	const { minSteps = 2, maxSteps = Infinity, maxAttempts = 500, random = Math.random } = options;
+function findPuzzle(graph: WordGraph, options: PickPuzzleOptions = {}): PuzzleWithPath | null {
+	const {
+		minSteps = 2,
+		maxSteps = Infinity,
+		maxAttempts = 500,
+		random = Math.random,
+		end: fixedEnd
+	} = options;
 	const words = graph.allWords();
 	if (words.length < 2) return null;
+	if (fixedEnd !== undefined && !graph.has(fixedEnd)) return null;
 
 	for (let attempt = 0; attempt < maxAttempts; attempt++) {
 		const start = words[Math.floor(random() * words.length)];
-		const end = words[Math.floor(random() * words.length)];
+		const end = fixedEnd ?? words[Math.floor(random() * words.length)];
 		if (start === end) continue;
 
 		const path = shortestPath(graph, start, end);
 		if (!path) continue;
 		if (path.length < minSteps || path.length > maxSteps) continue;
 
-		return { start, end, length: graph.length, minSteps: path.length };
+		return { start, end, length: graph.length, minSteps: path.length, path };
 	}
 	return null;
+}
+
+export function pickPuzzle(graph: WordGraph, options: PickPuzzleOptions = {}): LadderPuzzle | null {
+	const found = findPuzzle(graph, options);
+	if (!found) return null;
+	return { start: found.start, end: found.end, length: found.length, minSteps: found.minSteps };
+}
+
+export interface DailyPuzzle {
+	/** UTC calendar date this puzzle belongs to, YYYY-MM-DD. */
+	date: string;
+	/** Increments by one per day since `epoch`, for display ("#370"). */
+	puzzleNumber: number;
+	target: string;
+	start: string;
+	length: number;
+	/** Word count of the *full* optimal path (start through target), unaffected by rungsGiven. */
+	minSteps: number;
+	/**
+	 * Words immediately after `start` on the optimal path, handed over for
+	 * free — words[0] is one step from `start`, words[1] two steps, etc.
+	 * Guaranteed degree >= 2 (an edge in and an edge out), so a rung can
+	 * never itself be a dead end.
+	 */
+	revealedRungs: string[];
+}
+
+export interface PickDailyPuzzleOptions {
+	/** Difficulty floor for what's left for the player *after* rungsGiven are removed. */
+	minSteps?: number;
+	maxSteps?: number;
+	maxAttempts?: number;
+	/** Date that puzzleNumber 1 falls on. */
+	epoch?: string;
+	/** How many rungs after `start` to reveal for free. Default 0. */
+	rungsGiven?: number;
+	/**
+	 * Extra string mixed into the seed. Required (pass the game id) when
+	 * `target` is null — without a fixed target, the date alone would give
+	 * every random-mode game the same start/target pair on the same day.
+	 * Ignored when `target` is set, since the target already makes the seed
+	 * unique per game and changing this would shift already-live games'
+	 * daily puzzles.
+	 */
+	seedKey?: string;
+}
+
+/**
+ * Same puzzle for everyone on a given UTC date — seeded from date + target
+ * (the "always end at POOP" mechanic), so it needs no server-side storage
+ * to stay consistent across requests. Pass `target: null` for "random
+ * mode", where the target cycles through the dictionary a word at a time
+ * (see the dailyTarget comment below) instead of being pinned.
+ */
+export function pickDailyPuzzle(
+	graph: WordGraph,
+	target: string | null,
+	date: string,
+	options: PickDailyPuzzleOptions = {}
+): DailyPuzzle | null {
+	const {
+		minSteps = 2,
+		maxSteps = Infinity,
+		maxAttempts = 500,
+		epoch = DEFAULT_EPOCH,
+		rungsGiven = 0,
+		seedKey = ''
+	} = options;
+	const random = dailyRandom(date, target, seedKey);
+
+	// In random mode (target === null), the target itself walks a fixed
+	// permutation of the dictionary (see dailyIndices) instead of being
+	// resampled independently each day — every word gets used as a target
+	// before any of them repeat, a guarantee plain per-day rerolling can't
+	// make. `start` still comes from independent daily resampling below
+	// (findPuzzle's random-retry search): only one of the pair needs a hard
+	// non-repeat guarantee for "today's puzzle" to reliably look different,
+	// and start/end aren't independently choosable anyway — start has to
+	// actually reach whatever end this picks.
+	const words = graph.allWords();
+	const dailyTarget =
+		target ??
+		(words.length > 0 ? words[dailyIndices(date, epoch, words.length, seedKey)[0]] : undefined);
+
+	// minSteps/maxSteps describe the challenge left for the player *after*
+	// rungsGiven words are handed over, so shift the search floor/ceiling
+	// by rungsGiven when looking for a full start-to-target path.
+	const puzzle = findPuzzle(graph, {
+		minSteps: minSteps + rungsGiven,
+		maxSteps: maxSteps === Infinity ? Infinity : maxSteps + rungsGiven,
+		maxAttempts,
+		random,
+		end: dailyTarget
+	});
+	if (!puzzle) return null;
+
+	return {
+		date,
+		puzzleNumber: puzzleNumberFor(date, epoch),
+		target: puzzle.end,
+		start: puzzle.start,
+		length: puzzle.length,
+		minSteps: puzzle.minSteps,
+		revealedRungs: puzzle.path.slice(1, 1 + rungsGiven)
+	};
 }

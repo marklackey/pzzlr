@@ -1,2 +1,5 @@
 # graphbuilder output is a regenerable build artifact (run: go run . in graphbuilder/)
 graphbuilder/output/
+
+# compiled binary from `go build ./...` in graphbuilder/ (module name == binary name)
+graphbuilder/graphbuilder

@@ -9,21 +9,21 @@ export class WordGraph {
 
 	private readonly words: string[];
 	private readonly adjacency: number[][];
-	private readonly indexOf: Map<string, number>;
+	private readonly wordIndex: Map<string, number>;
 
 	constructor(data: WordGraphData) {
 		this.length = data.length;
 		this.words = data.words;
 		this.adjacency = data.adjacency;
-		this.indexOf = new Map(data.words.map((w, i) => [w, i]));
+		this.wordIndex = new Map(data.words.map((w, i) => [w, i]));
 	}
 
 	has(word: string): boolean {
-		return this.indexOf.has(word);
+		return this.wordIndex.has(word);
 	}
 
 	neighbors(word: string): string[] {
-		const i = this.indexOf.get(word);
+		const i = this.wordIndex.get(word);
 		if (i === undefined) return [];
 		return this.adjacency[i].map((j) => this.words[j]);
 	}
@@ -34,5 +34,10 @@ export class WordGraph {
 
 	allWords(): readonly string[] {
 		return this.words;
+	}
+
+	/** This word's position in `allWords()`, stable for this instance's lifetime (graphs are loaded once and cached — see graphs.ts) — or undefined if it isn't in the graph. */
+	indexOf(word: string): number | undefined {
+		return this.wordIndex.get(word);
 	}
 }

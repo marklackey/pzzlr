@@ -31,11 +31,19 @@ type manifestEntry struct {
 }
 
 func main() {
-	input := flag.String("input", "data/esdb/words-80-A.txt", "path to raw ESDB word-list export")
-	outputDir := flag.String("output", "output", "directory to write graph-<length>.json files into")
+	size := flag.Int("size", 80, "ESDB size tier to build (50, 60, or 80 — matches a data/esdb/words-<size>-A.txt file); also picks the default -output subdirectory")
+	input := flag.String("input", "", "path to raw ESDB word-list export (default: data/esdb/words-<size>-A.txt)")
+	outputDir := flag.String("output", "", "directory to write graph-<length>.json files into (default: output/<size>)")
 	minLen := flag.Int("min-len", 3, "minimum word length to include")
 	maxLen := flag.Int("max-len", 8, "maximum word length to include")
 	flag.Parse()
+
+	if *input == "" {
+		*input = fmt.Sprintf("data/esdb/words-%d-A.txt", *size)
+	}
+	if *outputDir == "" {
+		*outputDir = filepath.Join("output", fmt.Sprintf("%d", *size))
+	}
 
 	words, err := LoadWords(*input, *minLen, *maxLen)
 	if err != nil {

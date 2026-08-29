@@ -6,8 +6,28 @@
 export type { WordGraphData } from './types';
 export { WordGraph } from './graph';
 
-export type { LadderPuzzle, LadderValidation, PickPuzzleOptions, StepValidation } from './ladder';
-export { shortestPath, isSolvable, validateLadder, checkStep, pickPuzzle } from './ladder';
+export type {
+	LadderPuzzle,
+	LadderValidation,
+	PickPuzzleOptions,
+	StepValidation,
+	DailyPuzzle,
+	PickDailyPuzzleOptions
+} from './ladder';
+export {
+	shortestPath,
+	isSolvable,
+	validateLadder,
+	checkStep,
+	pickPuzzle,
+	pickDailyPuzzle
+} from './ladder';
 
-export type { LetterStatus, LetterResult } from './wordle';
-export { scoreGuess, isWin } from './wordle';
+export type { LetterStatus, LetterResult, DailyWordle, PickDailyWordOptions } from './wordle';
+export { scoreGuess, isWin, pickDailyWord } from './wordle';
+
+export type { DailyQuordle, PickDailyQuordleOptions } from './quordle';
+export { pickDailyQuordle } from './quordle';
+
+export type { AbsurdleOutcome } from './absurdle';
+export { absurdleGuess, encodeCandidates, decodeCandidates } from './absurdle';

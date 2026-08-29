@@ -1,36 +1,46 @@
 import { WordGraph, type WordGraphData } from './engine';
+import { DEFAULT_DICTIONARY_SIZE } from '$lib/types';
 
-import graph3 from './data/graphs/graph-3.json';
-import graph4 from './data/graphs/graph-4.json';
-import graph5 from './data/graphs/graph-5.json';
-import graph6 from './data/graphs/graph-6.json';
-import graph7 from './data/graphs/graph-7.json';
-import graph8 from './data/graphs/graph-8.json';
+// Picks up every graph-<length>.json under every data/graphs/<size>/
+// directory at build time — see graphbuilder's -size flag and the
+// website's sync-graphs script, which is what populates these
+// subdirectories. Using a glob here (rather than named imports per file)
+// means adding a new dictionary size tier only requires regenerating and
+// syncing graphs, not touching this file.
+const modules = import.meta.glob<WordGraphData>('./data/graphs/*/graph-*.json', {
+	eager: true,
+	import: 'default'
+});
 
-const raw: Record<number, WordGraphData> = {
-	3: graph3 as WordGraphData,
-	4: graph4 as WordGraphData,
-	5: graph5 as WordGraphData,
-	6: graph6 as WordGraphData,
-	7: graph7 as WordGraphData,
-	8: graph8 as WordGraphData
-};
+const pathPattern = /data\/graphs\/(\d+)\/graph-(\d+)\.json$/;
 
-const cache = new Map<number, WordGraph>();
-
-/** Lazily builds and caches the WordGraph for a given word length. */
-export function getGraph(length: number): WordGraph | null {
-	if (!(length in raw)) return null;
-	let graph = cache.get(length);
-	if (!graph) {
-		graph = new WordGraph(raw[length]);
-		cache.set(length, graph);
-	}
-	return graph;
+function key(size: number, length: number): string {
+	return `${size}:${length}`;
 }
 
-export function availableLengths(): number[] {
-	return Object.keys(raw)
-		.map(Number)
-		.sort((a, b) => a - b);
+const raw = new Map<string, WordGraphData>();
+for (const [path, data] of Object.entries(modules)) {
+	const match = path.match(pathPattern);
+	if (!match) continue;
+	const [, size, length] = match;
+	raw.set(key(Number(size), Number(length)), data);
+}
+
+const cache = new Map<string, WordGraph>();
+
+// size takes a plain number (not DictionarySize) because it's most often
+// called with a DB row's dictionarySize column, which drizzle infers as
+// number rather than the narrower literal union — an unrecognized size
+// just falls through to the `!data` check below like any other miss.
+/** Lazily builds and caches the WordGraph for a given word length and dictionary size tier. */
+export function getGraph(length: number, size: number = DEFAULT_DICTIONARY_SIZE): WordGraph | null {
+	const k = key(size, length);
+	const data = raw.get(k);
+	if (!data) return null;
+	let graph = cache.get(k);
+	if (!graph) {
+		graph = new WordGraph(data);
+		cache.set(k, graph);
+	}
+	return graph;
 }

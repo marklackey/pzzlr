@@ -1,5 +1,8 @@
 node_modules
 
+# Built by ../sdk, copied in via `npm run sync-sdk` — not source.
+/static/sdk
+
 # Output
 .output
 .vercel
@@ -21,3 +24,5 @@ Thumbs.db
 # Vite
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+# SQLite
+*.db

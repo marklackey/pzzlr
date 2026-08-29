@@ -1,5 +1,5 @@
 import { defineConfig } from 'vitest/config';
-import adapter from '@sveltejs/adapter-auto';
+import adapter from '@sveltejs/adapter-cloudflare';
 import { sveltekit } from '@sveltejs/kit/vite';
 
 export default defineConfig({
@@ -11,10 +11,25 @@ export default defineConfig({
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
 
-			// adapter-auto only supports some environments, see https://svelte.dev/docs/kit/adapter-auto for a list.
-			// If your environment is not supported, or you settled on a specific environment, switch out the adapter.
-			// See https://svelte.dev/docs/kit/adapters for more information about adapters.
-			adapter: adapter()
+			// Deployed to Cloudflare Workers with a D1 database binding (see
+			// wrangler.jsonc) — needed for a real HTTPS domain, which Sign in
+			// with Apple requires.
+			adapter: adapter(),
+
+			// Apple's callback is a genuine cross-site POST (response_mode=
+			// form_post from appleid.apple.com) — SvelteKit's CSRF guard blocks
+			// that by default, separately from the trustedOrigins already set
+			// on the better-auth side in auth.ts. Only enforced in production,
+			// which is why this didn't show up in local dev.
+			csrf: {
+				trustedOrigins: ['https://appleid.apple.com']
+			},
+
+			typescript: {
+				config: (config) => {
+					config.include.push('../drizzle.config.ts');
+				}
+			}
 		})
 	],
 	test: {

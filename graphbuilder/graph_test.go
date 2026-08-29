@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"os"
 	"reflect"
 	"testing"
@@ -49,6 +50,25 @@ func TestBuildGraphs_OneLetterAway(t *testing.T) {
 	}
 	if got := neighborsOf(t, g3, "cog"); !reflect.DeepEqual(got, []string{"cot", "dog"}) {
 		t.Errorf("cog neighbors = %v, want [cot dog]", got)
+	}
+}
+
+// A nil [][]int entry marshals to JSON `null`; consumers reading the
+// output expect an array (possibly empty) for every word, never null.
+func TestBuildGraphs_IsolatedWordMarshalsToEmptyArray(t *testing.T) {
+	words := []string{"zzz"} // no other word of this length, so no neighbors
+	g := BuildGraphs(words)[3]
+
+	if got := neighborsOf(t, g, "zzz"); len(got) != 0 {
+		t.Fatalf("zzz neighbors = %v, want none", got)
+	}
+
+	data, err := json.Marshal(g.Adjacency)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != "[[]]" {
+		t.Errorf("Adjacency marshaled to %s, want [[]] (not [null])", data)
 	}
 }
 
