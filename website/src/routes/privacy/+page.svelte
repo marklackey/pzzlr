@@ -79,7 +79,7 @@
 	<h2>Deleting your information</h2>
 	<p>
 		You can delete any game you've made from its own page, at any time. To delete your whole
-		account, email <a href="mailto:privacy@pzzlr.app">privacy@pzzlr.app</a> and we'll remove it, along
+		account, email <a href="mailto:support@pzzlr.app">support@pzzlr.app</a> and we'll remove it, along
 		with the games belonging to it. You can also ask for a copy of what's stored about you.
 	</p>
 	<p>
@@ -101,7 +101,7 @@
 
 	<h2>Contact</h2>
 	<p>
-		Questions about any of this: <a href="mailto:privacy@pzzlr.app">privacy@pzzlr.app</a>, or see
+		Questions about any of this: <a href="mailto:support@pzzlr.app">support@pzzlr.app</a>, or see
 		the
 		<a href={resolve('/support')}>support page</a>.
 	</p>

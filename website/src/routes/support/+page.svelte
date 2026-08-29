@@ -56,7 +56,7 @@
 
 	<h3>I want my account or data deleted</h3>
 	<p>
-		Email <a href="mailto:privacy@pzzlr.app">privacy@pzzlr.app</a>. The
+		Email <a href="mailto:support@pzzlr.app">support@pzzlr.app</a>. The
 		<a href={resolve('/privacy')}>privacy page</a> covers what's stored and what you can ask for.
 	</p>
 
