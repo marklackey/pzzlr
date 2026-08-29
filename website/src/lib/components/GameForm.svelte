@@ -242,6 +242,16 @@
 				<option value="absurdle">Absurdle</option>
 			</select>
 		</label>
+
+		{#if hasFixedTarget}
+			<label class="checkbox">
+				<input type="checkbox" name="randomTarget" bind:checked={randomMode} />
+				Daily mode
+				<InfoTooltip label="What does daily mode mean?">
+					No fixed {mode === 'wordle' ? 'secret' : 'target'} — a new one is picked for every day instead.
+				</InfoTooltip>
+			</label>
+		{/if}
 	</section>
 
 	<section hidden={currentStep !== 'puzzle'}>
@@ -254,16 +264,6 @@
 			</select>
 		</label>
 
-		{#if hasFixedTarget}
-			<label class="checkbox">
-				<input type="checkbox" name="randomTarget" bind:checked={randomMode} />
-				Daily mode
-				<InfoTooltip label="What does daily mode mean?">
-					No fixed {mode === 'wordle' ? 'secret' : 'target'} — a new one is picked for every day instead.
-				</InfoTooltip>
-			</label>
-		{/if}
-
 		{#if hasFixedTarget && !randomMode}
 			<label>
 				{mode === 'wordle' ? 'Secret word' : 'Target word'}
@@ -273,6 +273,19 @@
 			<label>
 				Word length
 				<input name="length" type="number" min="4" max="8" bind:value={lengthInput} required />
+			</label>
+		{/if}
+
+		{#if mode === 'ladder'}
+			<label>
+				<span class="label-row">
+					Minimum steps
+					<InfoTooltip label="What do minimum steps mean?">
+						The shortest possible ladder from the start word to the target, counting both ends. A
+						higher number means a longer walk — and fewer start words far enough away to manage it.
+					</InfoTooltip>
+				</span>
+				<input name="minSteps" type="number" min="1" bind:value={minStepsInput} required />
 			</label>
 		{/if}
 
@@ -322,10 +335,6 @@
 		{/if}
 		{#if mode === 'ladder'}
 			<div class="field-grid">
-				<label>
-					Minimum steps
-					<input name="minSteps" type="number" min="1" bind:value={minStepsInput} required />
-				</label>
 				<label>
 					<span class="label-row">
 						Rungs given away
