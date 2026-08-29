@@ -47,6 +47,11 @@ export const gameConfig = sqliteTable('game_config', {
 	// puzzle" means the same challenge for everyone, same reasoning as
 	// minSteps.
 	maxGuesses: integer('max_guesses').notNull().default(6),
+	// wordle/quordle modes only: whether hints already revealed have to be
+	// reused in later guesses — a green letter kept in place, a yellow one
+	// kept somewhere. Enforced server-side in the guess routes, since a
+	// client-side check would just be advice.
+	hardMode: integer('hard_mode', { mode: 'boolean' }).notNull().default(false),
 	// quordle mode only: how many simultaneous secret words a single shared
 	// guess stream is scored against. Pinned per-game for the same reason
 	// every other daily-shape knob is — see pickDailyQuordle.

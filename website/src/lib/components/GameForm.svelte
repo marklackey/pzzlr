@@ -28,6 +28,7 @@
 		rungsGiven?: number;
 		maxGuesses?: number;
 		boardCount?: number;
+		hardMode?: boolean;
 		name?: string | null;
 		submitLabel: string;
 		randomMode?: boolean;
@@ -44,6 +45,7 @@
 		rungsGiven = 0,
 		maxGuesses = 6,
 		boardCount = 4,
+		hardMode = false,
 		name = null,
 		submitLabel,
 		randomMode = $bindable(target === null),
@@ -64,6 +66,7 @@
 	let rungsGivenInput = $state(untrack(() => rungsGiven));
 	let maxGuessesInput = $state(untrack(() => maxGuesses));
 	let boardCountInput = $state(untrack(() => boardCount));
+	let hardModeInput = $state(untrack(() => hardMode));
 
 	const hasFixedTarget = $derived(mode === 'ladder' || mode === 'wordle');
 
@@ -307,6 +310,16 @@
 	</section>
 
 	<section hidden={currentStep !== 'difficulty'}>
+		{#if mode === 'wordle' || mode === 'quordle'}
+			<label class="checkbox">
+				<input type="checkbox" name="hardMode" bind:checked={hardModeInput} />
+				Hard mode
+				<InfoTooltip label="What is hard mode?">
+					Every hint has to be reused: a green letter stays where it is, and a yellow one appears
+					somewhere in each later guess.
+				</InfoTooltip>
+			</label>
+		{/if}
 		{#if mode === 'ladder'}
 			<div class="field-grid">
 				<label>

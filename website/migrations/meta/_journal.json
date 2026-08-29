@@ -15,6 +15,13 @@
       "when": 1787977661704,
       "tag": "0001_rename_attempt_table",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1788033305733,
+      "tag": "0002_add_hard_mode",
+      "breakpoints": true
     }
   ]
 }

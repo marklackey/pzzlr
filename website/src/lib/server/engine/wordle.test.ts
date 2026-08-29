@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { WordGraph } from './graph';
-import { isWin, pickDailyWord, scoreGuess } from './wordle';
+import { hardModeViolation, isWin, pickDailyWord, scoreGuess } from './wordle';
 import type { WordGraphData } from './types';
 
 const fixture: WordGraphData = {
@@ -111,5 +111,33 @@ describe('pickDailyWord', () => {
 		const epoch = '2026-08-19';
 		expect(pickDailyWord(g, 'dog', epoch, { epoch })?.puzzleNumber).toBe(1);
 		expect(pickDailyWord(g, 'dog', '2026-08-22', { epoch })?.puzzleNumber).toBe(4);
+	});
+});
+
+describe('hardModeViolation', () => {
+	const scored = (secret: string, guess: string) => scoreGuess(secret, guess);
+
+	it('allows any guess when nothing has been revealed', () => {
+		expect(hardModeViolation([], 'cat')).toBeNull();
+	});
+
+	it('requires a green letter to stay put', () => {
+		// secret "cot", guess "cat": c green, a absent, t green.
+		const previous = [scored('cot', 'cat')];
+		expect(hardModeViolation(previous, 'dot')).toMatch(/C must stay in position 1/);
+		expect(hardModeViolation(previous, 'cut')).toBeNull();
+	});
+
+	it('requires a yellow letter to be used somewhere', () => {
+		// secret "cot", guess "tag": t is present but misplaced.
+		const previous = [scored('cot', 'tag')];
+		expect(hardModeViolation(previous, 'cob')).toMatch(/T must be used somewhere/);
+		expect(hardModeViolation(previous, 'cot')).toBeNull();
+	});
+
+	it('reports each requirement once, however many rows revealed it', () => {
+		const previous = [scored('cot', 'cat'), scored('cot', 'cut')];
+		const message = hardModeViolation(previous, 'dog');
+		expect(message?.match(/C must stay/g)).toHaveLength(1);
 	});
 });

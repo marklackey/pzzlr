@@ -131,6 +131,14 @@
 			return;
 		}
 
+		// A hard-mode rejection costs no guess, so the row stays open and the
+		// server explains which hint the guess ignored.
+		if (result.hardModeViolation) {
+			message = result.hardModeViolation;
+			currentGuess = '';
+			return;
+		}
+
 		message = '';
 		guesses = [...guesses, result.result];
 		currentGuess = '';

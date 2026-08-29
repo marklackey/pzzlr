@@ -18,6 +18,8 @@ export interface NewGameConfig {
 	maxGuesses?: number;
 	/** quordle mode only. Defaults to 4 (the column default) when omitted. See schema.ts. */
 	boardCount?: number;
+	/** wordle/quordle only: revealed hints must be reused. See schema.ts. */
+	hardMode?: boolean;
 	/** Null for games not created by a logged-in user (e.g. the seed script). */
 	ownerId?: string | null;
 	/** Defaults to true (listed in the public index). See embed-key.ts for what "false" gates. */
@@ -38,6 +40,7 @@ export type GameConfigUpdate = Partial<
 		| 'rungsGiven'
 		| 'maxGuesses'
 		| 'boardCount'
+		| 'hardMode'
 		| 'public'
 		| 'embedKeyId'
 		| 'embedKey'

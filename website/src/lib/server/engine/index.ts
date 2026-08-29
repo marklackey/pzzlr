@@ -27,7 +27,7 @@ export {
 } from './ladder';
 
 export type { LetterStatus, LetterResult, DailyWordle, PickDailyWordOptions } from './wordle';
-export { scoreGuess, isWin, pickDailyWord } from './wordle';
+export { scoreGuess, isWin, pickDailyWord, hardModeViolation } from './wordle';
 
 export type { DailyQuordle, PickDailyQuordleOptions } from './quordle';
 export { pickDailyQuordle } from './quordle';

@@ -287,8 +287,9 @@ export function reachTarget(graph: WordGraph, target: string): TargetReach {
  */
 export function countPossiblePuzzles(reach: TargetReach, minSteps: number): number {
 	let count = 0;
-	for (const [word, steps] of reach.laddersByStart) {
-		if (steps >= minSteps && !(reach.inDictionary && steps === 1)) count++;
+	for (const steps of reach.laddersByStart.values()) {
+		// steps === 1 is the target itself, which can't also be the start.
+		if (steps >= minSteps && steps > 1) count++;
 	}
 	return count;
 }

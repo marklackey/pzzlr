@@ -26,6 +26,8 @@ export interface ParsedGameInput {
 	maxGuesses: number;
 	/** quordle mode only — how many simultaneous secret words one guess stream is scored against. */
 	boardCount: number;
+	/** wordle/quordle only: revealed hints must be reused. See schema.ts. */
+	hardMode: boolean;
 	name?: string;
 	public: boolean;
 }
@@ -51,6 +53,7 @@ export function gameFormToBody(formData: FormData): Record<string, unknown> {
 	const rungsGiven = Number(formData.get('rungsGiven') || 0);
 	const maxGuesses = Number(formData.get('maxGuesses') || 6);
 	const boardCount = Number(formData.get('boardCount') || 4);
+	const hardMode = formData.get('hardMode') === 'on';
 	const name = formData.get('name')?.toString().trim() || undefined;
 	const isPrivate = formData.get('private') === 'on';
 	return {
@@ -62,6 +65,7 @@ export function gameFormToBody(formData: FormData): Record<string, unknown> {
 		rungsGiven,
 		maxGuesses,
 		boardCount,
+		hardMode,
 		name,
 		public: !isPrivate
 	};
@@ -101,13 +105,14 @@ export function parseGameInput(body: unknown): ParsedGameInput {
 	const rungsGiven = typeof b?.rungsGiven === 'number' ? b.rungsGiven : 0;
 	const maxGuesses = typeof b?.maxGuesses === 'number' ? b.maxGuesses : 6;
 	const boardCount = typeof b?.boardCount === 'number' ? b.boardCount : 4;
+	const hardMode = b?.hardMode === true;
 	const name = typeof b?.name === 'string' && b.name.length > 0 ? b.name : undefined;
 	const isPublic = typeof b?.public === 'boolean' ? b.public : true;
 
 	if (!length) {
 		throw error(
 			400,
-			'expected { mode?: "ladder" | "wordle" | "quordle" | "absurdle", target?: string, length: number, dictionarySize?: 50 | 60 | 80, minSteps?: number, rungsGiven?: number, maxGuesses?: number, boardCount?: number, name?: string }'
+			'expected { mode?: "ladder" | "wordle" | "quordle" | "absurdle", target?: string, length: number, dictionarySize?: 50 | 60 | 80, minSteps?: number, rungsGiven?: number, maxGuesses?: number, boardCount?: number, hardMode?: boolean, name?: string }'
 		);
 	}
 
@@ -142,17 +147,14 @@ export function parseGameInput(body: unknown): ParsedGameInput {
 		if (target.length !== length) {
 			throw error(400, `target "${target}" must be ${length} letters`);
 		}
-		// A target outside the dictionary is allowed — a name, a brand, an
-		// in-joke — as long as some dictionary word sits one letter from it,
-		// since that's how a ladder arrives. Only this final rung escapes the
-		// dictionary; every step before it is still a real word. What can't
-		// work is a word nothing can reach.
-		if (!graph.has(target) && graph.oneLetterNeighbors(target).length === 0) {
-			throw error(
-				400,
-				`no word in the length-${length} dictionary (size ${dictionarySize}) is one letter from "${target}", so no ladder could ever reach it — try a word closer to a real one`
-			);
-		}
+		// A target outside the dictionary is fine — a name, a brand, an
+		// in-joke — reached from whichever dictionary word sits one letter
+		// from it; only that final rung escapes the dictionary. A target
+		// nothing can reach is fine too, and simply makes an unwinnable game,
+		// which is allowed on purpose: the create form reports how many
+		// puzzles a target can produce (see /api/target-reach), so an
+		// impossible one is a choice rather than an accident. Such a game
+		// says it can't generate today's puzzle when someone opens it.
 	}
 
 	return {
@@ -164,16 +166,22 @@ export function parseGameInput(body: unknown): ParsedGameInput {
 		rungsGiven,
 		maxGuesses,
 		boardCount,
+		hardMode,
 		name,
 		public: isPublic
 	};
 }
 
 /**
- * Fail fast at create/edit time rather than the first time someone loads
- * the game: confirm a daily puzzle can actually be generated with this
- * input before persisting it. `seedKey` should be the game's id, so the
- * check exercises the exact seed the game will actually be served under.
+ * Whether today's puzzle can actually be generated for this game, and why
+ * not if it can't.
+ *
+ * Deliberately not enforced at create time: a game with no solution is
+ * allowed. Someone may want a ladder to a word nothing can reach, and the
+ * create form already reports how many puzzles a target can produce (see
+ * /api/target-reach), so an unwinnable game is an informed choice rather
+ * than an accident. This exists for that reporting, and for anything that
+ * wants to explain the failure rather than prevent it.
  */
 export function assertDailySolvable(input: ParsedGameInput, seedKey: string): void {
 	const graph = getGraph(input.length, input.dictionarySize)!; // parseGameInput already confirmed this exists

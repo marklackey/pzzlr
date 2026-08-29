@@ -50,6 +50,39 @@ export function isWin(result: LetterResult[]): boolean {
 	return result.every((r) => r.status === 'correct');
 }
 
+/**
+ * Why a guess isn't allowed under hard mode, or null if it is.
+ *
+ * Hard mode holds you to what you've already been told: a letter shown
+ * green has to stay in that position, and one shown yellow has to appear
+ * somewhere. Only the hints matter, not which guess produced them, so this
+ * takes every previous result at once.
+ *
+ * Returns a player-facing reason rather than a boolean because "not
+ * allowed" on its own is infuriating in a game whose whole feedback loop is
+ * about what you've been told.
+ */
+export function hardModeViolation(previous: LetterResult[][], guess: string): string | null {
+	const required: string[] = [];
+
+	for (const row of previous) {
+		row.forEach(({ letter, status }, i) => {
+			if (status === 'correct' && guess[i] !== letter) {
+				required.push(`${letter.toUpperCase()} must stay in position ${i + 1}`);
+			}
+			if (status === 'present' && !guess.includes(letter)) {
+				required.push(`${letter.toUpperCase()} must be used somewhere`);
+			}
+		});
+	}
+
+	if (required.length === 0) return null;
+	// The same hint repeats across rows once it's been revealed, so report
+	// each requirement once.
+	const unique = [...new Set(required)];
+	return `Hard mode: ${unique.join(', ')}.`;
+}
+
 export interface DailyWordle {
 	/** UTC calendar date this puzzle belongs to, YYYY-MM-DD. */
 	date: string;

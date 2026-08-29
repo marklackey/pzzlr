@@ -7,7 +7,7 @@ import {
 	getGameConfig,
 	updateGameConfig
 } from './db/games';
-import { parseGameInput, assertDailySolvable } from './game-input';
+import { parseGameInput } from './game-input';
 import { issueEmbedKey, revokeEmbedKey } from './embed-key';
 
 type SessionUser = App.Locals['user'];
@@ -28,12 +28,11 @@ export async function createGame(body: unknown, user: SessionUser) {
 	}
 
 	const input = parseGameInput(body);
-	// Generated up front (rather than left to createGameConfig's default) so
-	// the fail-fast check below seeds with the same id the game will
-	// actually be served under. Readable when the game has a name — see
+	// Generated up front rather than left to createGameConfig's default,
+	// since the id is also the seed a game's daily puzzles derive from and
+	// callers want it in hand. Readable when the game has a name — see
 	// generateGameId.
 	const id = await generateGameId(input.name);
-	assertDailySolvable(input, id);
 
 	const embedKey = input.public ? null : await issueEmbedKey(id, user.id);
 	return createGameConfig({
@@ -58,7 +57,6 @@ export async function updateGame(id: string, body: unknown, user: SessionUser, h
 	}
 
 	const input = parseGameInput(body);
-	assertDailySolvable(input, existing.id);
 
 	let embedKeyId = existing.embedKeyId;
 	let embedKey = existing.embedKey;

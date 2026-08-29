@@ -1,7 +1,7 @@
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { appendGuess, getOrCreateAttempt } from '$lib/server/db/puzzle-attempts';
-import { pickDailyWord, scoreGuess, isWin } from '$lib/server/engine';
+import { pickDailyWord, scoreGuess, isWin, hardModeViolation } from '$lib/server/engine';
 import { puzzleDate } from '$lib/server/date';
 import { loadGameForMode } from '$lib/server/route-helpers';
 
@@ -40,6 +40,19 @@ export const POST: RequestHandler = async (event) => {
 	// Wordle rejecting non-dictionary entries for free.
 	if (guess.length !== config.length || !graph.has(guess)) {
 		return json({ isWord: false });
+	}
+
+	if (config.hardMode) {
+		// Scored from the stored guesses rather than anything the client
+		// sends, for the same reason the secret never goes over the wire:
+		// otherwise hard mode is a suggestion the client can decline.
+		const puzzleSoFar = pickDailyWord(graph, config.target, date, { seedKey: config.id });
+		if (puzzleSoFar) {
+			const previous = attempt.guesses.map((g) => scoreGuess(puzzleSoFar.target, g));
+			const violation = hardModeViolation(previous, guess);
+			// Costs no attempt either — it's a rejected entry, not a wrong one.
+			if (violation) return json({ isWord: true, hardModeViolation: violation });
+		}
 	}
 
 	const puzzle = pickDailyWord(graph, config.target, date, { seedKey: config.id });

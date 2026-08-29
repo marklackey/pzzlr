@@ -105,6 +105,7 @@
 							rungsGiven={data.config.rungsGiven}
 							maxGuesses={data.config.maxGuesses}
 							boardCount={data.config.boardCount}
+							hardMode={data.config.hardMode}
 							name={data.config.name}
 							isPrivate={!data.config.public}
 						/>

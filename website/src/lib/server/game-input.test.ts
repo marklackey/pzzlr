@@ -28,11 +28,12 @@ describe('parseGameInput dictionarySize', () => {
 		expect(input.target).toBe(SIZE_80_ONLY_WORD);
 	});
 
-	it('still rejects a target no word in the tier can reach', () => {
-		// No length-5 dictionary word is one letter from this.
-		expect(() => parseGameInput({ target: 'zxqvw', length: 5, dictionarySize: 50 })).toThrowError(
-			expect.objectContaining({ status: 400 })
-		);
+	// Unwinnable games are allowed on purpose — see the target note in
+	// game-input.ts. Nothing here is one letter from this, so no ladder could
+	// ever reach it, and it's still accepted.
+	it('accepts a target no word can reach, leaving the game unwinnable', () => {
+		const input = parseGameInput({ target: 'zxqvw', length: 5, dictionarySize: 50 });
+		expect(input.target).toBe('zxqvw');
 	});
 
 	it('accepts the same target once the tier is widened enough to include it', () => {
