@@ -20,7 +20,8 @@
 	interface Props {
 		/** Connectivity per (dictionary, length) — see $lib/server/graph-stats. */
 		graphStats?: GraphStat[];
-		mode?: 'ladder' | 'wordle' | 'quordle' | 'absurdle';
+		/** '' until a type is chosen — the create form starts unset. */
+		mode?: 'ladder' | 'wordle' | 'quordle' | 'absurdle' | '';
 		target?: string | null;
 		length?: number;
 		dictionarySize?: number;
@@ -37,7 +38,7 @@
 
 	let {
 		graphStats = [],
-		mode = $bindable('ladder'),
+		mode = $bindable(''),
 		target = null,
 		length = 4,
 		dictionarySize = DEFAULT_DICTIONARY_SIZE,
@@ -261,7 +262,7 @@
 		</label>
 		<label>
 			<span class="label-row">
-				What kind of game
+				Game type
 				<InfoTooltip label="What do the game types mean?">
 					<ul class="tooltip-list">
 						<li>
@@ -280,7 +281,11 @@
 					</ul>
 				</InfoTooltip>
 			</span>
-			<select name="mode" bind:value={mode}>
+			<select name="mode" bind:value={mode} required>
+				<!-- Disabled rather than absent, so the field opens with nothing
+				     chosen and `required` makes choosing the first thing you do —
+				     the type decides what every later field even is. -->
+				<option value="" disabled>Select one</option>
 				<option value="ladder">Ladder</option>
 				<option value="wordle">Wordle</option>
 				<option value="quordle">Quordle</option>
@@ -493,7 +498,7 @@
 			{/if}
 			<div>
 				<dt>Type</dt>
-				<dd>{mode[0].toUpperCase() + mode.slice(1)}</dd>
+				<dd>{mode ? mode[0].toUpperCase() + mode.slice(1) : 'Not chosen'}</dd>
 			</div>
 			{#if hasFixedTarget}
 				<div>
