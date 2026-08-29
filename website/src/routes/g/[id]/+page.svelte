@@ -125,7 +125,15 @@
 						{#if data.config.mode === 'ladder' || data.config.mode === 'wordle'}
 							<div>
 								<dt>{data.config.mode === 'wordle' ? 'Secret' : 'Target'}</dt>
-								<dd>{data.config.target ?? 'Daily (a new one every day)'}</dd>
+								<dd>
+									{#if data.config.target === null}
+										Daily (a new one every day)
+									{:else if data.config.mode === 'wordle'}
+										{data.config.target} (the same every day)
+									{:else}
+										{data.config.target}
+									{/if}
+								</dd>
 							</div>
 						{/if}
 						<div>

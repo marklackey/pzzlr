@@ -260,7 +260,13 @@
 				<input type="checkbox" name="randomTarget" bind:checked={randomMode} />
 				Daily mode
 				<InfoTooltip label="What does daily mode mean?">
-					No fixed {mode === 'wordle' ? 'secret' : 'target'} — a new one is picked for every day instead.
+					{#if mode === 'wordle'}
+						On, a new secret is picked every day. Off, the game keeps one secret you choose — the
+						same answer every day, which makes it a one-off puzzle rather than a daily one.
+					{:else}
+						On, a new target is picked every day. Off, you choose the target and every ladder ends
+						there — the start word still changes daily.
+					{/if}
 				</InfoTooltip>
 			</label>
 		{/if}
@@ -281,6 +287,12 @@
 				{mode === 'wordle' ? 'Secret word' : 'Target word'}
 				<input name="target" bind:value={targetInput} required minlength="4" maxlength="8" />
 			</label>
+			{#if mode === 'wordle'}
+				<p class="field-note">
+					This exact word is the answer every day — a one-off puzzle rather than a daily one. Turn
+					on daily mode for a new secret each day.
+				</p>
+			{/if}
 		{:else}
 			<label>
 				Word length
@@ -425,7 +437,13 @@
 			{#if hasFixedTarget}
 				<div>
 					<dt>{mode === 'wordle' ? 'Secret' : 'Target'}</dt>
-					<dd>{randomMode ? 'Daily (a new one every day)' : targetInput}</dd>
+					<dd>
+						{randomMode
+							? 'Daily (a new one every day)'
+							: mode === 'wordle'
+								? `${targetInput} (the same every day)`
+								: targetInput}
+					</dd>
 				</div>
 			{/if}
 			<div>
@@ -618,5 +636,11 @@
 		background: #fdecea;
 		border-color: #f0c2bd;
 		color: #8a2c20;
+	}
+	.field-note {
+		margin: calc(var(--space-2) * -1) 0 0;
+		font-size: 0.8rem;
+		color: var(--color-text-muted);
+		line-height: 1.5;
 	}
 </style>
