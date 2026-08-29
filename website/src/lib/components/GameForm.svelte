@@ -70,6 +70,26 @@
 
 	const hasFixedTarget = $derived(mode === 'ladder' || mode === 'wordle');
 
+	// A ladder normally pins its target — "always end at POOP" is the whole
+	// mechanic, and the start word still changes daily. A wordle normally
+	// doesn't: pinning its secret freezes the entire puzzle. So the sensible
+	// starting point is opposite for the two, and switching mode moves to
+	// that mode's, rather than carrying over an answer to a different
+	// question. Only on an actual change, so an existing game's stored
+	// setting survives being opened for editing.
+	const DEFAULT_RANDOM: Record<string, boolean> = {
+		ladder: false,
+		wordle: true,
+		quordle: true,
+		absurdle: true
+	};
+	let lastMode = untrack(() => mode);
+	$effect(() => {
+		if (mode === lastMode) return;
+		lastMode = mode;
+		randomMode = DEFAULT_RANDOM[mode] ?? true;
+	});
+
 	// Only ladders care about connectivity: they walk one letter at a time,
 	// so both ends have to sit in the same island of mutually reachable
 	// words. The guessing modes just need the word to exist, and are
@@ -227,6 +247,18 @@
 			Name
 			<input name="name" placeholder="e.g. Cakeward" bind:value={nameInput} />
 		</label>
+		<!-- Up front with the other defining choices rather than tucked next to
+		     the summary: this is set to become a paid option, so it needs to be
+		     a decision someone makes about the game, not a box they tick on the
+		     way out. -->
+		<label class="checkbox">
+			<input type="checkbox" name="private" bind:checked={isPrivate} />
+			Private
+			<InfoTooltip label="What does private mean?">
+				Only playable with an embed key you get after saving — anyone without the key sees a missing
+				game, and it's left out of Explore.
+			</InfoTooltip>
+		</label>
 		<label>
 			<span class="label-row">
 				What kind of game
@@ -256,34 +288,40 @@
 			</select>
 		</label>
 
-		<!-- Up front with the other defining choices rather than tucked next to
-		     the summary: this is set to become a paid option, so it needs to be
-		     a decision someone makes about the game, not a box they tick on the
-		     way out. -->
-		<label class="checkbox">
-			<input type="checkbox" name="private" bind:checked={isPrivate} />
-			Private
-			<InfoTooltip label="What does private mean?">
-				Only playable with an embed key you get after saving — anyone without the key sees a missing
-				game, and it's left out of Explore.
-			</InfoTooltip>
-		</label>
-
-		{#if hasFixedTarget}
+		<!-- Rendered for every mode and merely made invisible when it doesn't
+		     apply, rather than dropped: reserving the row by guessing its
+		     height would drift the moment the label or spacing changes, and
+		     the card jumping as you switch game type is what this avoids.
+		     visibility:hidden also takes it out of the tab order. -->
+		<div class="toggle-slot" class:inapplicable={!hasFixedTarget} aria-hidden={!hasFixedTarget}>
+			{#if hasFixedTarget}
+				<!-- The submitted value always means "no fixed target"; only the
+				     way it's asked changes, since each mode's usual answer is the
+				     opposite of the other's. -->
+				<input type="hidden" name="randomTarget" value={randomMode ? 'on' : ''} />
+			{/if}
 			<label class="checkbox">
-				<input type="checkbox" name="randomTarget" bind:checked={randomMode} />
-				Daily mode
-				<InfoTooltip label="What does daily mode mean?">
+				<input
+					type="checkbox"
+					disabled={!hasFixedTarget}
+					checked={mode === 'wordle' ? !randomMode : randomMode}
+					onchange={(e) =>
+						(randomMode = mode === 'wordle' ? !e.currentTarget.checked : e.currentTarget.checked)}
+				/>
+				{mode === 'wordle' ? 'Fixed secret' : 'Daily mode'}
+				<InfoTooltip
+					label={mode === 'wordle' ? 'What is a fixed secret?' : 'What does daily mode mean?'}
+				>
 					{#if mode === 'wordle'}
-						On, a new secret is picked every day. Off, the game keeps one secret you choose — the
+						Off, a new secret is picked every day. On, the game keeps one secret you choose — the
 						same answer every day, which makes it a one-off puzzle rather than a daily one.
 					{:else}
-						On, a new target is picked every day. Off, you choose the target and every ladder ends
-						there — the start word still changes daily.
+						Off, you choose the target and every ladder ends there — the start word still changes
+						daily. On, a new target is picked every day too.
 					{/if}
 				</InfoTooltip>
 			</label>
-		{/if}
+		</div>
 	</section>
 
 	<section hidden={currentStep !== 'puzzle'}>
@@ -665,5 +703,9 @@
 		font-size: 0.8rem;
 		color: var(--color-text-muted);
 		line-height: 1.5;
+	}
+	/* Holds its own height when the toggle doesn't apply to this mode. */
+	.toggle-slot.inapplicable {
+		visibility: hidden;
 	}
 </style>
