@@ -4,6 +4,7 @@ import { getAttempt } from '$lib/server/db/puzzle-attempts';
 import { pickDailyWord } from '$lib/server/engine';
 import { puzzleDate } from '$lib/server/date';
 import { loadGameForMode } from '$lib/server/route-helpers';
+import { settingsForAttempt } from '$lib/server/attempt-continuity';
 
 /**
  * Reveals today's secret — only once the caller's own attempt (see
@@ -14,7 +15,7 @@ import { loadGameForMode } from '$lib/server/route-helpers';
  */
 export const GET: RequestHandler = async (event) => {
 	const { params, url } = event;
-	const { config, graph } = await loadGameForMode(event, 'wordle', 'reveal');
+	const loaded = await loadGameForMode(event, 'wordle', 'reveal');
 
 	const date = url.searchParams.get('date') ?? puzzleDate();
 	const token = url.searchParams.get('token');
@@ -22,7 +23,10 @@ export const GET: RequestHandler = async (event) => {
 		throw error(400, 'expected ?token=<attempt token>');
 	}
 
-	const attempt = await getAttempt(config.id, date, token);
+	const attempt = await getAttempt(loaded.config.id, date, token);
+	// Reveal the secret this attempt was actually played against — see
+	// attempt-continuity.
+	const { config, graph } = settingsForAttempt(loaded.config, loaded.graph, attempt);
 	if (!attempt || (!attempt.solved && attempt.guesses.length < config.maxGuesses)) {
 		throw error(403, 'guesses remaining — keep playing before revealing the answer');
 	}

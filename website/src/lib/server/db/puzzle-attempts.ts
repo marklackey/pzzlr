@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 import { getDb } from './index';
-import { puzzleAttempt } from './schema';
+import { puzzleAttempt, type AttemptConfig } from './schema';
 
 export async function getAttempt(gameId: string, date: string, token: string) {
 	const [row] = await getDb()
@@ -16,14 +16,24 @@ export async function getAttempt(gameId: string, date: string, token: string) {
 	return row ?? null;
 }
 
-/** Fetches the existing attempt for this (game, day, token), or starts a fresh one. */
-export async function getOrCreateAttempt(gameId: string, date: string, token: string) {
+/**
+ * Fetches the existing attempt for this (game, day, token), or starts a
+ * fresh one against `config` — which the new attempt keeps, so an edit to
+ * the game part-way through doesn't change the puzzle underneath it. See
+ * the config column in schema.ts.
+ */
+export async function getOrCreateAttempt(
+	gameId: string,
+	date: string,
+	token: string,
+	config: AttemptConfig
+) {
 	const existing = await getAttempt(gameId, date, token);
 	if (existing) return existing;
 
 	const [row] = await getDb()
 		.insert(puzzleAttempt)
-		.values({ gameId, date, token, guesses: [], solved: false })
+		.values({ gameId, date, token, guesses: [], solved: false, config })
 		// A second request racing the first to create the same (game, date,
 		// token) row loses the insert and falls through to the select below
 		// instead of erroring — same "at most one true attempt" guarantee

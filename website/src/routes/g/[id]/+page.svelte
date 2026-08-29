@@ -31,8 +31,35 @@
 	// asked for, and hands back to the summary on a successful save.
 	let editing = $state(false);
 	$effect(() => {
-		if (form?.success) editing = false;
+		if (!form?.success) return;
+		editing = false;
+		resetOwnAttempt();
 	});
+
+	/**
+	 * Drops this browser's attempt token for the game just edited, so the
+	 * widget starts a fresh attempt on the edited version instead of resuming
+	 * one played against the old settings.
+	 *
+	 * Only this browser: an attempt is keyed by a token in local storage
+	 * rather than an account (see the widgets' attemptToken), so there's no
+	 * server-side way to pick out "the owner's" attempt — and no reason to,
+	 * since anyone else mid-puzzle is meant to keep the game they started
+	 * (see attempt-continuity.ts). The person who just edited it is the one
+	 * at this keyboard.
+	 */
+	function resetOwnAttempt() {
+		for (const mode of ['ladder', 'wordle']) {
+			try {
+				localStorage.removeItem(`pzzlr-${mode}-token:${data.config.id}`);
+			} catch {
+				// Storage unavailable (private browsing) means there was no
+				// stored attempt to clear either.
+			}
+		}
+		// The widget reads its token once on load, so it needs remounting.
+		location.reload();
+	}
 
 	let copied = $state(false);
 	async function copySnippet() {

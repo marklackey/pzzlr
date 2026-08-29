@@ -4,6 +4,7 @@ import { getAttempt } from '$lib/server/db/puzzle-attempts';
 import { pickDailyWord, scoreGuess } from '$lib/server/engine';
 import { puzzleDate } from '$lib/server/date';
 import { loadGameForMode } from '$lib/server/route-helpers';
+import { settingsForAttempt } from '$lib/server/attempt-continuity';
 
 /**
  * Today's wordle puzzle metadata — deliberately excludes `target`. The
@@ -18,7 +19,7 @@ import { loadGameForMode } from '$lib/server/route-helpers';
  */
 export const GET: RequestHandler = async (event) => {
 	const { params, url } = event;
-	const { config, graph } = await loadGameForMode(event, 'wordle', 'daily');
+	const loaded = await loadGameForMode(event, 'wordle', 'daily');
 
 	// See the matching comment in the ladder daily route: maxGuesses always
 	// comes from the stored config, never the query string, so "today's
@@ -26,12 +27,15 @@ export const GET: RequestHandler = async (event) => {
 	const date = url.searchParams.get('date') ?? puzzleDate();
 	const token = url.searchParams.get('token');
 
+	const attempt = token ? await getAttempt(loaded.config.id, date, token) : null;
+	// An attempt already under way keeps the secret it started on, whatever
+	// the game says now — see attempt-continuity.
+	const { config, graph } = settingsForAttempt(loaded.config, loaded.graph, attempt);
+
 	const puzzle = pickDailyWord(graph, config.target, date, { seedKey: config.id });
 	if (!puzzle) {
 		throw error(404, `could not generate a puzzle for game "${params.id}" on ${date}`);
 	}
-
-	const attempt = token ? await getAttempt(config.id, date, token) : null;
 	const resumed = attempt
 		? {
 				guesses: attempt.guesses.map((guess) => scoreGuess(puzzle.target, guess)),

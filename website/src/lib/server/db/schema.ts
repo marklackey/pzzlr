@@ -78,6 +78,22 @@ export const gameConfig = sqliteTable('game_config', {
 });
 
 /**
+ * Everything about a game that decides what its puzzle is and which guesses
+ * are legal — snapshotted onto an attempt so it can outlive an edit. See
+ * the config column below.
+ */
+export interface AttemptConfig {
+	mode: 'ladder' | 'wordle' | 'quordle' | 'absurdle';
+	target: string | null;
+	length: number;
+	dictionarySize: number;
+	minSteps: number;
+	rungsGiven: number;
+	maxGuesses: number;
+	hardMode: boolean;
+}
+
+/**
  * One row per (game, day, player) attempt at a daily puzzle — the
  * server-side memory that makes guesses, reveals, and "you already played
  * today" authoritative instead of an honor system. Shared by every mode
@@ -109,6 +125,14 @@ export const puzzleAttempt = sqliteTable(
 		// since the daily pickers regenerate that from game/date anyway. So
 		// the table stays valid if either mode's scoring output changes.
 		guesses: text('guesses', { mode: 'json' }).notNull().$type<string[]>().default([]),
+		// The puzzle-shaping settings as they stood when this attempt began.
+		// Editing a game changes what the next attempt gets, not what someone
+		// already mid-puzzle is looking at: their stored guesses only mean
+		// anything against the puzzle they were made on, so a changed target
+		// or dictionary would turn a half-finished game into nonsense. Null
+		// for attempts started before this column existed, which fall back to
+		// the game's current settings.
+		config: text('config', { mode: 'json' }).$type<AttemptConfig>(),
 		solved: integer('solved', { mode: 'boolean' }).notNull().default(false),
 		createdAt: integer('created_at', { mode: 'timestamp' })
 			.notNull()

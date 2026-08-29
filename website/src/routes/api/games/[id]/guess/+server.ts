@@ -5,6 +5,7 @@ import { puzzleDate } from '$lib/server/date';
 import { loadGameForMode } from '$lib/server/route-helpers';
 import { appendGuess, getOrCreateAttempt } from '$lib/server/db/puzzle-attempts';
 import { ladderChain, ladderPuzzle } from '$lib/server/ladder-attempt';
+import { settingsForAttempt, snapshotOf } from '$lib/server/attempt-continuity';
 
 /**
  * Takes one ladder step and records it against the caller's attempt for the
@@ -24,7 +25,7 @@ import { ladderChain, ladderPuzzle } from '$lib/server/ladder-attempt';
  */
 export const POST: RequestHandler = async (event) => {
 	const { params } = event;
-	const { config, graph } = await loadGameForMode(event, 'ladder', 'guess');
+	const loaded = await loadGameForMode(event, 'ladder', 'guess');
 
 	const body = await event.request.json().catch(() => null);
 	const guess = typeof body?.guess === 'string' ? body.guess.toLowerCase() : null;
@@ -34,12 +35,19 @@ export const POST: RequestHandler = async (event) => {
 		throw error(400, 'expected { guess: string, token: string, date?: string }');
 	}
 
+	const attempt = await getOrCreateAttempt(
+		loaded.config.id,
+		date,
+		token,
+		snapshotOf(loaded.config)
+	);
+	// Whatever this attempt started under, it keeps — see attempt-continuity.
+	const { config, graph } = settingsForAttempt(loaded.config, loaded.graph, attempt);
+
 	const puzzle = ladderPuzzle(graph, config, date);
 	if (!puzzle) {
 		throw error(404, `could not generate a puzzle for game "${params.id}" on ${date}`);
 	}
-
-	const attempt = await getOrCreateAttempt(config.id, date, token);
 	if (attempt.solved) {
 		throw error(409, "already solved — that's today's ladder done");
 	}

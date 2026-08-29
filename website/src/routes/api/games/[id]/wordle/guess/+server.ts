@@ -4,6 +4,7 @@ import { appendGuess, getOrCreateAttempt } from '$lib/server/db/puzzle-attempts'
 import { pickDailyWord, scoreGuess, isWin, hardModeViolation } from '$lib/server/engine';
 import { puzzleDate } from '$lib/server/date';
 import { loadGameForMode } from '$lib/server/route-helpers';
+import { settingsForAttempt, snapshotOf } from '$lib/server/attempt-continuity';
 
 /**
  * Scores one guess against today's secret without ever putting the secret
@@ -17,7 +18,7 @@ import { loadGameForMode } from '$lib/server/route-helpers';
  */
 export const POST: RequestHandler = async (event) => {
 	const { params } = event;
-	const { config, graph } = await loadGameForMode(event, 'wordle', 'guess');
+	const loaded = await loadGameForMode(event, 'wordle', 'guess');
 
 	const body = await event.request.json().catch(() => null);
 	const guess = typeof body?.guess === 'string' ? body.guess.toLowerCase() : null;
@@ -27,7 +28,14 @@ export const POST: RequestHandler = async (event) => {
 		throw error(400, 'expected { guess: string, token: string, date?: string }');
 	}
 
-	const attempt = await getOrCreateAttempt(config.id, date, token);
+	const attempt = await getOrCreateAttempt(
+		loaded.config.id,
+		date,
+		token,
+		snapshotOf(loaded.config)
+	);
+	// Whatever this attempt started under, it keeps — see attempt-continuity.
+	const { config, graph } = settingsForAttempt(loaded.config, loaded.graph, attempt);
 	if (attempt.solved) {
 		throw error(409, 'already solved — no more guesses to make');
 	}
