@@ -8,7 +8,7 @@ let cachedDb: ReturnType<typeof drizzle<typeof schema>> | undefined;
 // Worker (see wrangler.jsonc) — there's no module-load-time equivalent of
 // the old `DATABASE_URL` env var to build this from eagerly. getRequestEvent
 // reaches into the request that's currently being handled, so every caller
-// (games.ts, wordle-attempts.ts, auth.ts) just calls getDb() instead of
+// (games.ts, puzzle-attempts.ts, auth.ts) just calls getDb() instead of
 // importing a static singleton, and this still only wraps the binding once
 // per Worker instance.
 export function getDb() {

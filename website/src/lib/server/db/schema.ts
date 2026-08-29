@@ -73,8 +73,11 @@ export const gameConfig = sqliteTable('game_config', {
 });
 
 /**
- * One row per (game, day, player) wordle attempt — the server-side memory
- * that makes guesses and reveals authoritative instead of an honor system.
+ * One row per (game, day, player) attempt at a daily puzzle — the
+ * server-side memory that makes guesses, reveals, and "you already played
+ * today" authoritative instead of an honor system. Shared by every mode
+ * that persists progress (wordle and ladder today); a game is exactly one
+ * mode, so a game id never has rows of two different shapes.
  * `token` is an opaque id the client mints and persists (localStorage),
  * *not* a login: the SDK widget is played anonymously on embed pages, so
  * there's no account to hang this off of. That means a determined caller
@@ -84,8 +87,8 @@ export const gameConfig = sqliteTable('game_config', {
  * for a future per-attempt score to mean something; revisit if real
  * leaderboard stakes ever need it to be tamper-proof.
  */
-export const wordleAttempt = sqliteTable(
-	'wordle_attempt',
+export const puzzleAttempt = sqliteTable(
+	'puzzle_attempt',
 	{
 		id: text('id')
 			.primaryKey()
@@ -95,11 +98,11 @@ export const wordleAttempt = sqliteTable(
 			.references(() => gameConfig.id, { onDelete: 'cascade' }),
 		date: text('date').notNull(),
 		token: text('token').notNull(),
-		// Guessed words in order. Re-scored against the target on read (the
-		// target itself is never stored — pickDailyWord regenerates it from
-		// game/date, same as every other daily route) rather than persisting
-		// the scored result, so this table stays valid if scoreGuess's output
-		// shape ever changes.
+		// Guessed words in order, and only the words: what they *mean* is
+		// recomputed on read (wordle re-scores them against the target,
+		// ladder replays them up the chain) from a target this never stores,
+		// since the daily pickers regenerate that from game/date anyway. So
+		// the table stays valid if either mode's scoring output changes.
 		guesses: text('guesses', { mode: 'json' }).notNull().$type<string[]>().default([]),
 		solved: integer('solved', { mode: 'boolean' }).notNull().default(false),
 		createdAt: integer('created_at', { mode: 'timestamp' })
@@ -110,7 +113,7 @@ export const wordleAttempt = sqliteTable(
 		// At most one attempt per player per game per day — guess/reveal
 		// both read-then-write this row, so it has to be unique or a second
 		// browser tab could fork into two "true" attempts for the same play.
-		uniqueIndex('wordle_attempt_game_date_token_idx').on(table.gameId, table.date, table.token)
+		uniqueIndex('puzzle_attempt_game_date_token_idx').on(table.gameId, table.date, table.token)
 	]
 );
 

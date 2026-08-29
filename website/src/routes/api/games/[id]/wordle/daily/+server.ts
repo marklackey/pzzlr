@@ -1,6 +1,6 @@
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getAttempt } from '$lib/server/db/wordle-attempts';
+import { getAttempt } from '$lib/server/db/puzzle-attempts';
 import { pickDailyWord, scoreGuess } from '$lib/server/engine';
 import { todayUTC } from '$lib/server/date';
 import { loadGameForMode } from '$lib/server/route-helpers';

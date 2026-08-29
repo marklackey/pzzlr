@@ -1,15 +1,15 @@
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getAttempt } from '$lib/server/db/wordle-attempts';
+import { getAttempt } from '$lib/server/db/puzzle-attempts';
 import { pickDailyWord } from '$lib/server/engine';
 import { todayUTC } from '$lib/server/date';
 import { loadGameForMode } from '$lib/server/route-helpers';
 
 /**
  * Reveals today's secret — only once the caller's own attempt (see
- * wordle-attempts.ts) is actually over: solved, or every guess used. That
+ * puzzle-attempts.ts) is actually over: solved, or every guess used. That
  * makes this the "show the answer after a loss" UI action it's meant to
- * be, not a shortcut around playing — see the comment on wordleAttempt in
+ * be, not a shortcut around playing — see the comment on puzzleAttempt in
  * schema.ts for the (soft, anonymous-token) trust model this rides on.
  */
 export const GET: RequestHandler = async (event) => {

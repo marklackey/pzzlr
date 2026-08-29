@@ -11,7 +11,7 @@ import { loadGameForMode } from '$lib/server/route-helpers';
  * routes' doc comments), so there's nothing to check it against. The widget
  * only calls this once its own guess count reaches maxGuesses, but a
  * determined caller could call it early; that's the same soft, anonymous
- * trust model the wordle attempt token already rides on (see wordleAttempt
+ * trust model the wordle attempt token already rides on (see puzzleAttempt
  * in schema.ts), just without even the token-based speed bump.
  */
 export const GET: RequestHandler = async (event) => {

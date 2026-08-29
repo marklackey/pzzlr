@@ -1,6 +1,6 @@
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { appendGuess, getOrCreateAttempt } from '$lib/server/db/wordle-attempts';
+import { appendGuess, getOrCreateAttempt } from '$lib/server/db/puzzle-attempts';
 import { pickDailyWord, scoreGuess, isWin } from '$lib/server/engine';
 import { todayUTC } from '$lib/server/date';
 import { loadGameForMode } from '$lib/server/route-helpers';
@@ -10,9 +10,9 @@ import { loadGameForMode } from '$lib/server/route-helpers';
  * itself on the wire — the response's `result` echoes each guessed letter
  * back with a status, which is all a client needs to render tiles and
  * detect a win (every letter "correct"). The guess is also recorded against
- * the caller's attempt (see wordle-attempts.ts) so a solve/loss is
+ * the caller's attempt (see puzzle-attempts.ts) so a solve/loss is
  * server-known rather than something the client just claims — see the
- * comment on wordleAttempt in schema.ts for what that guarantee is (and
+ * comment on puzzleAttempt in schema.ts for what that guarantee is (and
  * isn't) good for.
  */
 export const POST: RequestHandler = async (event) => {

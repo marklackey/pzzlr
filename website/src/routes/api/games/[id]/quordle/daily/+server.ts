@@ -7,7 +7,7 @@ import { loadGameForMode } from '$lib/server/route-helpers';
 /**
  * Today's quordle board-set metadata — deliberately excludes `targets`, same
  * reasoning as the wordle daily route. Unlike wordle, this mode has no
- * server-side attempt tracking (see wordle_attempt in schema.ts): a quordle
+ * server-side attempt tracking (see puzzleAttempt in schema.ts): a quordle
  * game's guesses live entirely in the client, so there's no `resumed` field
  * here and a reload just starts the board set over.
  */

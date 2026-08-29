@@ -1,16 +1,16 @@
 import { and, eq } from 'drizzle-orm';
 import { getDb } from './index';
-import { wordleAttempt } from './schema';
+import { puzzleAttempt } from './schema';
 
 export async function getAttempt(gameId: string, date: string, token: string) {
 	const [row] = await getDb()
 		.select()
-		.from(wordleAttempt)
+		.from(puzzleAttempt)
 		.where(
 			and(
-				eq(wordleAttempt.gameId, gameId),
-				eq(wordleAttempt.date, date),
-				eq(wordleAttempt.token, token)
+				eq(puzzleAttempt.gameId, gameId),
+				eq(puzzleAttempt.date, date),
+				eq(puzzleAttempt.token, token)
 			)
 		);
 	return row ?? null;
@@ -22,7 +22,7 @@ export async function getOrCreateAttempt(gameId: string, date: string, token: st
 	if (existing) return existing;
 
 	const [row] = await getDb()
-		.insert(wordleAttempt)
+		.insert(puzzleAttempt)
 		.values({ gameId, date, token, guesses: [], solved: false })
 		// A second request racing the first to create the same (game, date,
 		// token) row loses the insert and falls through to the select below
@@ -41,9 +41,9 @@ export async function appendGuess(
 	solved: boolean
 ) {
 	const [row] = await getDb()
-		.update(wordleAttempt)
+		.update(puzzleAttempt)
 		.set({ guesses: [...attempt.guesses, guess], solved: attempt.solved || solved })
-		.where(eq(wordleAttempt.id, attempt.id))
+		.where(eq(puzzleAttempt.id, attempt.id))
 		.returning();
 	return row ?? null;
 }

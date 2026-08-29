@@ -32,6 +32,27 @@
 	let currentGuess = $state('');
 	let message = $state('');
 
+	// Server-side progress is keyed off this per-(browser, game) attempt
+	// token rather than a login — the widget is played anonymously on embed
+	// pages, so there's no account to hang it off. Persisted in localStorage
+	// so a reload resumes today's ladder instead of starting a new one;
+	// falls back to an in-memory token (still playable for this page load)
+	// if storage is unavailable, e.g. private browsing with storage blocked.
+	function attemptToken(): string {
+		const key = `pzzlr-ladder-token:${game}`;
+		try {
+			let token = localStorage.getItem(key);
+			if (!token) {
+				token = crypto.randomUUID();
+				localStorage.setItem(key, token);
+			}
+			return token;
+		} catch {
+			return crypto.randomUUID();
+		}
+	}
+	const token = attemptToken();
+
 	async function loadPuzzle() {
 		if (!game) {
 			message = 'missing required "game" attribute (a stored game config id)';
@@ -42,8 +63,9 @@
 		status = 'loading';
 		message = '';
 		try {
-			const params = date ? `?date=${date}` : '';
-			const res = await fetch(`${apibase}/api/games/${game}/daily${params}`, {
+			const params = new URLSearchParams({ token });
+			if (date) params.set('date', date);
+			const res = await fetch(`${apibase}/api/games/${game}/daily?${params}`, {
 				headers: authHeaders(apikey)
 			});
 			if (!res.ok) throw new Error(`puzzle request failed: ${res.status}`);
@@ -57,10 +79,11 @@
 			minStepsResolved = data.minSteps;
 			puzzleNumber = data.puzzleNumber ?? null;
 			gameName = data.name ?? null;
-			rows = [start, ...revealedRungs];
-			givenCount = rows.length;
+			givenCount = 1 + revealedRungs.length;
+			const resumed = data.resumed as { guesses: string[]; solved: boolean } | null;
+			rows = [start, ...revealedRungs, ...(resumed?.guesses ?? [])];
 			currentGuess = '';
-			status = 'playing';
+			status = resumed?.solved ? 'won' : 'playing';
 		} catch (err) {
 			message = err instanceof Error ? err.message : 'failed to load puzzle';
 			status = 'error';
@@ -76,13 +99,21 @@
 		const res = await fetch(`${apibase}/api/games/${game}/guess`, {
 			method: 'POST',
 			headers: { 'content-type': 'application/json', ...authHeaders(apikey) },
-			body: JSON.stringify({ current, guess })
+			body: JSON.stringify({ guess, token, date: date || undefined })
 		});
+
+		if (res.status === 409) {
+			// Our local state disagrees with the server's (e.g. today's ladder
+			// was finished in another tab) — resync from the source of truth
+			// rather than pressing on with a stale board.
+			await loadPuzzle();
+			return;
+		}
 		const result = await res.json();
 
 		if (!result.isNeighbor) {
 			message = result.isWord
-				? `"${guess}" isn't one letter away from "${current}"`
+				? `"${guess}" isn't one letter away from "${result.current ?? current}"`
 				: `"${guess}" isn't a word in this dictionary`;
 			currentGuess = '';
 			return;
@@ -91,7 +122,7 @@
 		message = '';
 		rows = [...rows, guess];
 		currentGuess = '';
-		if (guess === end) status = 'won';
+		if (result.solved) status = 'won';
 	}
 
 	const { typeLetter, backspace, handleKeydown } = createKeyboardHandlers({
@@ -203,7 +234,8 @@
 
 			{#if status === 'won'}
 				<p class="won">
-					Solved in {guessesMade()} guesses (best possible: {bestPossibleRemaining()})!
+					Solved in {guessesMade()}
+					{guessesMade() === 1 ? 'guess' : 'guesses'} (best possible: {bestPossibleRemaining()})!
 				</p>
 				<button type="button" class="copy" onclick={copyShare}>
 					{copied ? 'Copied!' : 'Copy result'}
