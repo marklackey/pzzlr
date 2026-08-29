@@ -1,6 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { getGraph } from './graphs';
-import { pickDailyPuzzle, pickDailyQuordle, pickDailyWord } from './engine';
+import { pickDailyPuzzle, pickDailyQuordle, pickDailyWord, reachTarget } from './engine';
 import { puzzleDate } from './date';
 import {
 	DEFAULT_DICTIONARY_SIZE,
@@ -142,10 +142,15 @@ export function parseGameInput(body: unknown): ParsedGameInput {
 		if (target.length !== length) {
 			throw error(400, `target "${target}" must be ${length} letters`);
 		}
-		if (!graph.has(target)) {
+		// A target outside the dictionary is allowed — a name, a brand, an
+		// in-joke — as long as some dictionary word sits one letter from it,
+		// since that's how a ladder arrives. Only this final rung escapes the
+		// dictionary; every step before it is still a real word. What can't
+		// work is a word nothing can reach.
+		if (!graph.has(target) && graph.oneLetterNeighbors(target).length === 0) {
 			throw error(
 				400,
-				`target "${target}" is not a word in the length-${length} dictionary (size ${dictionarySize})`
+				`no word in the length-${length} dictionary (size ${dictionarySize}) is one letter from "${target}", so no ladder could ever reach it — try a word closer to a real one`
 			);
 		}
 	}
@@ -211,11 +216,20 @@ export function assertDailySolvable(input: ParsedGameInput, seedKey: string): vo
 		seedKey
 	});
 	if (!puzzle) {
+		if (input.target) {
+			// Say what the target can actually manage rather than just that
+			// this didn't work — the ceiling is a property of the word, and
+			// no amount of retrying changes it.
+			const reach = reachTarget(graph, input.target);
+			const required = input.minSteps + input.rungsGiven;
+			throw error(
+				400,
+				`"${input.target}" can't support that: the longest ladder ending there is ${reach.longestLadder} words, but minSteps=${input.minSteps} with rungsGiven=${input.rungsGiven} needs ${required} — try a lower minSteps or fewer rungs`
+			);
+		}
 		throw error(
 			400,
-			input.target
-				? `no solvable daily puzzle exists for target "${input.target}" with minSteps=${input.minSteps} and rungsGiven=${input.rungsGiven} — try a lower minSteps or fewer rungs`
-				: `no solvable random puzzle exists for length ${input.length} with minSteps=${input.minSteps} and rungsGiven=${input.rungsGiven} — try a lower minSteps or fewer rungs`
+			`no solvable random puzzle exists for length ${input.length} with minSteps=${input.minSteps} and rungsGiven=${input.rungsGiven} — try a lower minSteps or fewer rungs`
 		);
 	}
 }

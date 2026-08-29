@@ -15,9 +15,31 @@ export interface LadderValidation {
 	reason?: string;
 }
 
-/** Breadth-first shortest path between two words, or null if unreachable. */
+/**
+ * Breadth-first shortest path between two words, or null if unreachable.
+ *
+ * `end` may be a word the dictionary doesn't contain — a custom target. It
+ * is then reached via whichever dictionary word next to it comes up first,
+ * and appended as the final rung. `start` always has to be a real word,
+ * since every step before the last is played against the dictionary.
+ */
 export function shortestPath(graph: WordGraph, start: string, end: string): string[] | null {
-	if (!graph.has(start) || !graph.has(end)) return null;
+	if (!graph.has(start)) return null;
+	if (!graph.has(end)) {
+		const anchors = graph.oneLetterNeighbors(end);
+		if (anchors.length === 0) return null;
+		if (anchors.includes(start)) return [start, end];
+		// Every anchor has to be tried and the best kept: stopping at the
+		// first one that connects would return whichever happens to come
+		// first alphabetically, which is often the long way round — and the
+		// caller reads path length back as the puzzle's "best possible".
+		let best: string[] | null = null;
+		for (const anchor of anchors) {
+			const path = shortestPath(graph, start, anchor);
+			if (path && (best === null || path.length < best.length)) best = path;
+		}
+		return best ? [...best, end] : null;
+	}
 	if (start === end) return [start];
 
 	const prev = new Map<string, string>();
@@ -57,10 +79,40 @@ export interface StepValidation {
 	isNeighbor: boolean;
 }
 
-/** Checks whether `guess` is a legal single next step from `current`. */
-export function checkStep(graph: WordGraph, current: string, guess: string): StepValidation {
-	const isWord = graph.has(guess);
-	const isNeighbor = isWord && graph.neighbors(current).includes(guess);
+function differsByOneLetter(a: string, b: string): boolean {
+	if (a.length !== b.length) return false;
+	let differences = 0;
+	for (let i = 0; i < a.length; i++) {
+		if (a[i] !== b[i] && ++differences > 1) return false;
+	}
+	return differences === 1;
+}
+
+/**
+ * Checks whether `guess` is a legal single next step from `current`.
+ *
+ * `customTarget` is a game's target when the dictionary doesn't contain it.
+ * Without it the winning move would be rejected as "not a word" — the whole
+ * point of such a target is that only that one non-dictionary word is
+ * playable, and only as the final rung. Every other guess is still held to
+ * the dictionary.
+ */
+export function checkStep(
+	graph: WordGraph,
+	current: string,
+	guess: string,
+	customTarget?: string
+): StepValidation {
+	const isCustomTarget =
+		customTarget !== undefined && guess === customTarget && !graph.has(customTarget);
+	const isWord = graph.has(guess) || isCustomTarget;
+	if (!isWord) return { isWord: false, isNeighbor: false };
+
+	// A custom target has no entry in the graph, so adjacency to it has to be
+	// measured directly rather than looked up.
+	const isNeighbor = isCustomTarget
+		? differsByOneLetter(current, guess)
+		: graph.neighbors(current).includes(guess);
 	return { isWord, isNeighbor };
 }
 
@@ -119,7 +171,10 @@ function findPuzzle(graph: WordGraph, options: PickPuzzleOptions = {}): PuzzleWi
 	} = options;
 	const words = graph.allWords();
 	if (words.length < 2) return null;
-	if (fixedEnd !== undefined && !graph.has(fixedEnd)) return null;
+	// A custom target isn't in the graph, so it has no component of its own;
+	// what matters is only that some dictionary word can reach it.
+	const externalEnd = fixedEnd !== undefined && !graph.has(fixedEnd);
+	if (externalEnd && graph.oneLetterNeighbors(fixedEnd!).length === 0) return null;
 
 	// A ladder is a walk along edges, so it can't leave its component or
 	// visit more words than that component holds: anything smaller than
@@ -128,7 +183,9 @@ function findPuzzle(graph: WordGraph, options: PickPuzzleOptions = {}): PuzzleWi
 	// something we discover by burning every attempt on doomed pairs into an
 	// immediate, explainable answer — the create form reports it rather than
 	// letting the game 404 its own daily puzzle later.
-	if (fixedEnd !== undefined && graph.componentSize(fixedEnd) < minSteps) return null;
+	if (fixedEnd !== undefined && !externalEnd && graph.componentSize(fixedEnd) < minSteps) {
+		return null;
+	}
 
 	for (let attempt = 0; attempt < maxAttempts; attempt++) {
 		const start = words[Math.floor(random() * words.length)];
@@ -137,7 +194,9 @@ function findPuzzle(graph: WordGraph, options: PickPuzzleOptions = {}): PuzzleWi
 		if (start === end) continue;
 		// Cheap reject before the breadth-first search: unrelated islands can
 		// never be joined, and at long word lengths most random pairs are.
-		if (!graph.sameComponent(start, end)) continue;
+		// Skipped for a custom target, which belongs to no component — its
+		// own reachability was already checked above.
+		if (!externalEnd && !graph.sameComponent(start, end)) continue;
 
 		const path = shortestPath(graph, start, end);
 		if (!path) continue;
@@ -152,6 +211,86 @@ export function pickPuzzle(graph: WordGraph, options: PickPuzzleOptions = {}): L
 	const found = findPuzzle(graph, options);
 	if (!found) return null;
 	return { start: found.start, end: found.end, length: found.length, minSteps: found.minSteps };
+}
+
+/**
+ * What a given target word can actually support, from one breadth-first
+ * sweep outward from it.
+ *
+ * The target need not be in the dictionary: a word with at least one
+ * dictionary word a letter away can still be laddered to, arriving by that
+ * word, and only the final rung is then a non-dictionary word. A target
+ * with no such neighbour can never be reached at all.
+ */
+export interface TargetReach {
+	/** Whether the target is a dictionary word in its own right. */
+	inDictionary: boolean;
+	/** Dictionary words one letter away — how a ladder can arrive. */
+	anchors: string[];
+	/**
+	 * Longest ladder that can end here, counting start and target. This is
+	 * the target's eccentricity, so it's the real ceiling on minSteps —
+	 * unlike a component's word count, which only bounds it from above
+	 * (a hub with four spokes holds five words but no five-word path, since
+	 * any route through it would have to pass the hub twice).
+	 */
+	longestLadder: number;
+	/** Ladder word counts, keyed by the word a ladder would start from. */
+	laddersByStart: Map<string, number>;
+}
+
+/**
+ * Measures every ladder that could end at `target`, whether or not the
+ * dictionary contains it. Distances are counted in words (the target alone
+ * is 1, a word next to it is 2), matching how minSteps is expressed.
+ */
+export function reachTarget(graph: WordGraph, target: string): TargetReach {
+	const inDictionary = graph.has(target);
+	const anchors = inDictionary ? graph.neighbors(target) : graph.oneLetterNeighbors(target);
+
+	const laddersByStart = new Map<string, number>();
+	// Seed the sweep at whatever the target's immediate rungs are. A target
+	// in the dictionary is its own seed; one outside it starts from each
+	// word that can reach it, already two words along.
+	const queue: string[] = [];
+	if (inDictionary) {
+		laddersByStart.set(target, 1);
+		queue.push(target);
+	} else {
+		for (const anchor of anchors) {
+			if (laddersByStart.has(anchor)) continue;
+			laddersByStart.set(anchor, 2);
+			queue.push(anchor);
+		}
+	}
+
+	let longestLadder = anchors.length > 0 || inDictionary ? 1 : 0;
+	for (let head = 0; head < queue.length; head++) {
+		const word = queue[head];
+		const steps = laddersByStart.get(word)!;
+		if (steps > longestLadder) longestLadder = steps;
+		for (const next of graph.neighbors(word)) {
+			if (laddersByStart.has(next)) continue;
+			laddersByStart.set(next, steps + 1);
+			queue.push(next);
+		}
+	}
+
+	return { inDictionary, anchors, longestLadder, laddersByStart };
+}
+
+/**
+ * How many words a ladder of at least `minSteps` words could start from —
+ * i.e. how many distinct daily puzzles this target can ever produce. Zero
+ * means the game could never generate one, which is worth telling someone
+ * before they create it rather than when it fails to load.
+ */
+export function countPossiblePuzzles(reach: TargetReach, minSteps: number): number {
+	let count = 0;
+	for (const [word, steps] of reach.laddersByStart) {
+		if (steps >= minSteps && !(reach.inDictionary && steps === 1)) count++;
+	}
+	return count;
 }
 
 export interface DailyPuzzle {

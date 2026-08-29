@@ -12,7 +12,8 @@ export type {
 	PickPuzzleOptions,
 	StepValidation,
 	DailyPuzzle,
-	PickDailyPuzzleOptions
+	PickDailyPuzzleOptions,
+	TargetReach
 } from './ladder';
 export {
 	shortestPath,
@@ -20,7 +21,9 @@ export {
 	validateLadder,
 	checkStep,
 	pickPuzzle,
-	pickDailyPuzzle
+	pickDailyPuzzle,
+	reachTarget,
+	countPossiblePuzzles
 } from './ladder';
 
 export type { LetterStatus, LetterResult, DailyWordle, PickDailyWordOptions } from './wordle';

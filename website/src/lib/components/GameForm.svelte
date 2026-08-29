@@ -77,8 +77,64 @@
 	const connectivity = $derived(
 		graphStats.find((s) => s.size === dictionarySize && s.length === effectiveLength)
 	);
+	// What the typed-in target can actually support. Fetched rather than
+	// computed here because the dictionary lives on the server; debounced so
+	// typing a word doesn't fire a request per keystroke, and the in-flight
+	// one is abandoned when the answer would already be stale.
+	interface TargetReach {
+		known: boolean;
+		inDictionary?: boolean;
+		anchors?: string[];
+		anchorCount?: number;
+		longestLadder?: number;
+		possiblePuzzles?: number;
+	}
+	let targetReach = $state<TargetReach | null>(null);
+	const possiblePuzzles = $derived(targetReach?.possiblePuzzles ?? null);
+	let checkingTarget = $state(false);
+
+	$effect(() => {
+		const word = targetInput.trim().toLowerCase();
+		const size = dictionarySize;
+		const steps = minStepsInput;
+		const rungs = rungsGivenInput;
+
+		if (mode !== 'ladder' || randomMode || word.length < 4 || word.length > 8) {
+			targetReach = null;
+			checkingTarget = false;
+			return;
+		}
+
+		const controller = new AbortController();
+		checkingTarget = true;
+		const timer = setTimeout(async () => {
+			try {
+				const params = new URLSearchParams({
+					target: word,
+					dictionarySize: String(size),
+					minSteps: String(steps),
+					rungsGiven: String(rungs)
+				});
+				const res = await fetch(`/api/target-reach?${params}`, { signal: controller.signal });
+				targetReach = res.ok ? await res.json() : null;
+			} catch {
+				// Aborted, or offline — leaving the previous answer up would be
+				// worse than showing nothing.
+				targetReach = null;
+			} finally {
+				checkingTarget = false;
+			}
+		}, 300);
+
+		return () => {
+			clearTimeout(timer);
+			controller.abort();
+		};
+	});
+
 	const ladderWarning = $derived.by(() => {
 		if (mode !== 'ladder' || !connectivity) return null;
+		if (!randomMode && targetInput.trim().length >= 4) return null;
 		const share = connectivity.largestComponent / connectivity.wordCount;
 		if (share >= 0.5) return null;
 		return `At ${connectivity.length} letters only ${Math.round(share * 100)}% of this dictionary's words connect into one group — the rest sit in fragments too small to build a ladder through. Puzzles will repeat sooner, and some target words won't be usable at all.`;
@@ -219,6 +275,34 @@
 
 		{#if ladderWarning}
 			<p class="warning">{ladderWarning}</p>
+		{/if}
+
+		{#if mode === 'ladder' && !randomMode && targetReach?.known}
+			{#if possiblePuzzles === 0}
+				<p class="warning error">
+					{targetReach.anchorCount === 0
+						? `No word in this dictionary is one letter from "${targetInput.trim().toUpperCase()}", so no ladder can ever reach it.`
+						: `"${targetInput.trim().toUpperCase()}" can't support a ladder this long — the longest ending there is ${targetReach.longestLadder} words. Lower the minimum steps.`}
+				</p>
+			{:else}
+				<p class="reach" class:warning={possiblePuzzles !== null && possiblePuzzles < 20}>
+					<strong>{(possiblePuzzles ?? 0).toLocaleString()}</strong>
+					possible {possiblePuzzles === 1 ? 'puzzle' : 'puzzles'} for this target
+					{#if possiblePuzzles !== null && possiblePuzzles < 20}
+						— few enough that days will repeat quickly.
+					{/if}
+					{#if !targetReach.inDictionary}
+						<br />
+						Not a dictionary word, so players reach it from
+						<strong>{targetReach.anchors?.slice(0, 3).join(', ').toUpperCase()}</strong
+						>{(targetReach.anchorCount ?? 0) > 3
+							? ` and ${(targetReach.anchorCount ?? 0) - 3} more`
+							: ''}. Only that last step escapes the dictionary.
+					{/if}
+				</p>
+			{/if}
+		{:else if checkingTarget && mode === 'ladder' && !randomMode}
+			<p class="reach muted">Checking that target…</p>
 		{/if}
 	</section>
 
@@ -494,5 +578,22 @@
 		color: #6b5518;
 		font-size: 0.85rem;
 		line-height: 1.5;
+	}
+	.reach {
+		margin: var(--space-3) 0 0;
+		padding: var(--space-3);
+		border-radius: var(--radius-sm);
+		background: var(--color-bg);
+		border: 1px solid var(--color-border);
+		font-size: 0.85rem;
+		line-height: 1.5;
+	}
+	.reach.muted {
+		color: var(--color-text-muted);
+	}
+	.warning.error {
+		background: #fdecea;
+		border-color: #f0c2bd;
+		color: #8a2c20;
 	}
 </style>

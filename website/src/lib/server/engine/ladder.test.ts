@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { WordGraph } from './graph';
-import { isSolvable, pickDailyPuzzle, pickPuzzle, shortestPath, validateLadder } from './ladder';
+import {
+	checkStep,
+	countPossiblePuzzles,
+	isSolvable,
+	pickDailyPuzzle,
+	pickPuzzle,
+	reachTarget,
+	shortestPath,
+	validateLadder
+} from './ladder';
 import type { WordGraphData } from './types';
 
 // cat - cot - cog - dog chain, plus an isolated word with no neighbors.
@@ -252,5 +261,60 @@ describe('component-aware puzzle picking', () => {
 			if (!puzzle) continue;
 			expect(g.sameComponent(puzzle.start, puzzle.target)).toBe(true);
 		}
+	});
+});
+
+describe('targets outside the dictionary', () => {
+	// cat-cot-cog-dog chain. "cet" is not a word here, but sits one letter
+	// from both cat and cot, so a ladder can still end at it.
+	const g = new WordGraph({
+		length: 3,
+		words: ['cat', 'cot', 'cog', 'dog'],
+		adjacency: [[1], [0, 2], [1, 3], [2]]
+	});
+
+	it('reaches a non-dictionary target through its neighbours', () => {
+		const reach = reachTarget(g, 'cet');
+		expect(reach.inDictionary).toBe(false);
+		expect(reach.anchors.sort()).toEqual(['cat', 'cot']);
+		// dog is furthest: dog-cog-cot-cet.
+		expect(reach.longestLadder).toBe(4);
+	});
+
+	it('reports nothing reachable when no word is one letter away', () => {
+		const reach = reachTarget(g, 'xyz');
+		expect(reach.anchors).toEqual([]);
+		expect(reach.longestLadder).toBe(0);
+		expect(countPossiblePuzzles(reach, 2)).toBe(0);
+	});
+
+	it('counts only starts far enough away to meet minSteps', () => {
+		const reach = reachTarget(g, 'cet');
+		// Ladders: cat/cot are 2 words, cog 3, dog 4.
+		expect(countPossiblePuzzles(reach, 2)).toBe(4);
+		expect(countPossiblePuzzles(reach, 4)).toBe(1);
+		expect(countPossiblePuzzles(reach, 5)).toBe(0);
+	});
+
+	it('builds a path that ends on the non-dictionary word', () => {
+		const path = shortestPath(g, 'dog', 'cet');
+		expect(path).toEqual(['dog', 'cog', 'cot', 'cet']);
+	});
+
+	it('generates a daily puzzle ending at it', () => {
+		const puzzle = pickDailyPuzzle(g, 'cet', '2026-08-29', { minSteps: 3 });
+		expect(puzzle?.target).toBe('cet');
+		expect(g.has(puzzle!.start)).toBe(true);
+	});
+
+	it('accepts the custom target as a winning guess, but only from a neighbour', () => {
+		// The whole point: this one non-word is playable, as the last rung.
+		expect(checkStep(g, 'cot', 'cet', 'cet')).toEqual({ isWord: true, isNeighbor: true });
+		// Not adjacent, so still not a legal step.
+		expect(checkStep(g, 'dog', 'cet', 'cet')).toEqual({ isWord: true, isNeighbor: false });
+		// Any other non-dictionary word stays rejected.
+		expect(checkStep(g, 'cot', 'cit', 'cet')).toEqual({ isWord: false, isNeighbor: false });
+		// And without the game's target it isn't a word at all.
+		expect(checkStep(g, 'cot', 'cet')).toEqual({ isWord: false, isNeighbor: false });
 	});
 });

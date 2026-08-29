@@ -18,10 +18,21 @@ describe('parseGameInput dictionarySize', () => {
 		expect(input.dictionarySize).toBe(50);
 	});
 
-	it('rejects a target that only exists in a larger tier', () => {
-		expect(() =>
-			parseGameInput({ target: SIZE_80_ONLY_WORD, length: 5, dictionarySize: 50 })
-		).toThrowError(expect.objectContaining({ status: 400 }));
+	// Targets are no longer required to be dictionary words at all — a game
+	// may end at a name or an invented word, reached from a real one (see
+	// checkStep's customTarget). A word that only clears a larger tier is
+	// just one case of that, so the tier now constrains the ladder's steps
+	// and the guesses, not the destination.
+	it('allows a target from a larger tier, since a reachable non-word target is allowed', () => {
+		const input = parseGameInput({ target: SIZE_80_ONLY_WORD, length: 5, dictionarySize: 50 });
+		expect(input.target).toBe(SIZE_80_ONLY_WORD);
+	});
+
+	it('still rejects a target no word in the tier can reach', () => {
+		// No length-5 dictionary word is one letter from this.
+		expect(() => parseGameInput({ target: 'zxqvw', length: 5, dictionarySize: 50 })).toThrowError(
+			expect.objectContaining({ status: 400 })
+		);
 	});
 
 	it('accepts the same target once the tier is widened enough to include it', () => {

@@ -95,6 +95,29 @@ export class WordGraph {
 		return this.componentSizes![this.componentIds![i]];
 	}
 
+	/**
+	 * Dictionary words exactly one letter away from `word` — which, unlike
+	 * neighbors(), works for a word the dictionary doesn't contain.
+	 *
+	 * That's what lets a game use a target outside the dictionary (a name, a
+	 * brand, an in-joke): the word needs no entry of its own, only somewhere
+	 * to arrive from. These are the rungs a ladder can reach it by, and a
+	 * word with none of them can never be laddered to at all.
+	 */
+	oneLetterNeighbors(word: string): string[] {
+		if (word.length !== this.length) return [];
+		const found: string[] = [];
+		for (let i = 0; i < word.length; i++) {
+			for (let c = 97; c < 123; c++) {
+				const letter = String.fromCharCode(c);
+				if (letter === word[i]) continue;
+				const candidate = word.slice(0, i) + letter + word.slice(i + 1);
+				if (this.wordIndex.has(candidate)) found.push(candidate);
+			}
+		}
+		return found;
+	}
+
 	/** Whether both words sit in the same component, i.e. whether any ladder between them can exist at all. */
 	sameComponent(a: string, b: string): boolean {
 		const i = this.wordIndex.get(a);

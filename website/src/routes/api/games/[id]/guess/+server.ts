@@ -46,7 +46,8 @@ export const POST: RequestHandler = async (event) => {
 
 	const chain = ladderChain(puzzle, attempt.guesses);
 	const current = chain[chain.length - 1];
-	const step = checkStep(graph, current, guess);
+	// config.target may be a word the dictionary doesn't hold — see checkStep.
+	const step = checkStep(graph, current, guess, config.target ?? undefined);
 
 	// A word that isn't a legal next step costs nothing — same as the wordle
 	// route not spending a guess on a non-dictionary word.
