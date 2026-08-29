@@ -143,20 +143,19 @@
 		return `At ${connectivity.length} letters only ${Math.round(share * 100)}% of this dictionary's words connect into one group — the rest sit in fragments too small to build a ladder through. Puzzles will repeat sooner, and some target words won't be usable at all.`;
 	});
 
-	type StepId = 'basics' | 'puzzle' | 'difficulty' | 'visibility' | 'review';
+	type StepId = 'basics' | 'puzzle' | 'difficulty' | 'review';
 	const STEP_LABEL: Record<StepId, string> = {
 		basics: 'Basics',
 		puzzle: 'Puzzle',
 		difficulty: 'Difficulty',
-		visibility: 'Visibility',
 		review: 'Review'
 	};
 	// Absurdle has nothing to configure in Difficulty (no guess cap, no
 	// secret) — skipped outright rather than shown empty or disabled.
 	const steps = $derived(
 		mode === 'absurdle'
-			? (['basics', 'puzzle', 'visibility', 'review'] as StepId[])
-			: (['basics', 'puzzle', 'difficulty', 'visibility', 'review'] as StepId[])
+			? (['basics', 'puzzle', 'review'] as StepId[])
+			: (['basics', 'puzzle', 'difficulty', 'review'] as StepId[])
 	);
 	let stepIndex = $state(0);
 	const currentStep = $derived(steps[stepIndex] ?? steps[steps.length - 1]);
@@ -241,6 +240,19 @@
 				<option value="quordle">Quordle</option>
 				<option value="absurdle">Absurdle</option>
 			</select>
+		</label>
+
+		<!-- Up front with the other defining choices rather than tucked next to
+		     the summary: this is set to become a paid option, so it needs to be
+		     a decision someone makes about the game, not a box they tick on the
+		     way out. -->
+		<label class="checkbox">
+			<input type="checkbox" name="private" bind:checked={isPrivate} />
+			Private
+			<InfoTooltip label="What does private mean?">
+				Only playable with an embed key you get after saving — anyone without the key sees a missing
+				game, and it's left out of Explore.
+			</InfoTooltip>
 		</label>
 
 		{#if hasFixedTarget}
@@ -396,17 +408,6 @@
 				/>
 			</label>
 		{/if}
-	</section>
-
-	<section hidden={currentStep !== 'visibility'}>
-		<label class="checkbox">
-			<input type="checkbox" name="private" bind:checked={isPrivate} />
-			Private
-			<InfoTooltip label="What does private mean?">
-				Only playable with an embed key you get after saving — anyone without the key sees a missing
-				game, and it's left out of Explore.
-			</InfoTooltip>
-		</label>
 	</section>
 
 	<section hidden={currentStep !== 'review'}>
