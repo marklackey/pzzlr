@@ -2,7 +2,7 @@ import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getAttempt } from '$lib/server/db/puzzle-attempts';
 import { pickDailyWord, scoreGuess } from '$lib/server/engine';
-import { todayUTC } from '$lib/server/date';
+import { puzzleDate } from '$lib/server/date';
 import { loadGameForMode } from '$lib/server/route-helpers';
 
 /**
@@ -23,7 +23,7 @@ export const GET: RequestHandler = async (event) => {
 	// See the matching comment in the ladder daily route: maxGuesses always
 	// comes from the stored config, never the query string, so "today's
 	// puzzle" means the same challenge for every player.
-	const date = url.searchParams.get('date') ?? todayUTC();
+	const date = url.searchParams.get('date') ?? puzzleDate();
 	const token = url.searchParams.get('token');
 
 	const puzzle = pickDailyWord(graph, config.target, date, { seedKey: config.id });

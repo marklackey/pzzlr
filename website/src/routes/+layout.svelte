@@ -177,10 +177,13 @@
 		cursor: default;
 	}
 	.nav-inner {
-		/* Full-bleed rather than sharing .container's 40rem column: the bar is
-		   chrome, so the brand belongs on the left edge and the actions on the
-		   right, however wide the window is. */
+		/* Wider than .container's 40rem column — the bar is chrome, so the
+		   brand sits at the left edge and the actions at the right rather than
+		   bunching in the middle of the page — but still capped, so on a very
+		   wide screen they don't drift to opposite ends of the desk. */
 		width: 100%;
+		max-width: 80rem;
+		margin: 0 auto;
 		/* --nav-h (app.css) is the shared source of truth for how tall this
 		   bar is, so a page can size itself against "the viewport minus the
 		   nav" — the game page needs that to put its keyboard on the bottom

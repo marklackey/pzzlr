@@ -1,7 +1,7 @@
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { checkStep } from '$lib/server/engine';
-import { todayUTC } from '$lib/server/date';
+import { puzzleDate } from '$lib/server/date';
 import { loadGameForMode } from '$lib/server/route-helpers';
 import { appendGuess, getOrCreateAttempt } from '$lib/server/db/puzzle-attempts';
 import { ladderChain, ladderPuzzle } from '$lib/server/ladder-attempt';
@@ -29,7 +29,7 @@ export const POST: RequestHandler = async (event) => {
 	const body = await event.request.json().catch(() => null);
 	const guess = typeof body?.guess === 'string' ? body.guess.toLowerCase() : null;
 	const token = typeof body?.token === 'string' && body.token.length > 0 ? body.token : null;
-	const date = typeof body?.date === 'string' ? body.date : todayUTC();
+	const date = typeof body?.date === 'string' ? body.date : puzzleDate();
 	if (!guess || !token) {
 		throw error(400, 'expected { guess: string, token: string, date?: string }');
 	}

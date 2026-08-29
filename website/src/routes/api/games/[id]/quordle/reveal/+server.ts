@@ -1,7 +1,7 @@
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { pickDailyQuordle } from '$lib/server/engine';
-import { todayUTC } from '$lib/server/date';
+import { puzzleDate } from '$lib/server/date';
 import { loadGameForMode } from '$lib/server/route-helpers';
 
 /**
@@ -18,7 +18,7 @@ export const GET: RequestHandler = async (event) => {
 	const { params, url } = event;
 	const { config, graph } = await loadGameForMode(event, 'quordle', 'reveal');
 
-	const date = url.searchParams.get('date') ?? todayUTC();
+	const date = url.searchParams.get('date') ?? puzzleDate();
 
 	const puzzle = pickDailyQuordle(graph, date, config.boardCount, { seedKey: config.id });
 	if (!puzzle) {

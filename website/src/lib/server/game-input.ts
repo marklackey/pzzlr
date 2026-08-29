@@ -1,7 +1,7 @@
 import { error } from '@sveltejs/kit';
 import { getGraph } from './graphs';
 import { pickDailyPuzzle, pickDailyQuordle, pickDailyWord } from './engine';
-import { todayUTC } from './date';
+import { puzzleDate } from './date';
 import {
 	DEFAULT_DICTIONARY_SIZE,
 	DICTIONARY_SIZES,
@@ -174,7 +174,7 @@ export function assertDailySolvable(input: ParsedGameInput, seedKey: string): vo
 	const graph = getGraph(input.length, input.dictionarySize)!; // parseGameInput already confirmed this exists
 
 	if (input.mode === 'wordle') {
-		const word = pickDailyWord(graph, input.target, todayUTC(), { seedKey });
+		const word = pickDailyWord(graph, input.target, puzzleDate(), { seedKey });
 		if (!word) {
 			throw error(
 				400,
@@ -195,7 +195,7 @@ export function assertDailySolvable(input: ParsedGameInput, seedKey: string): vo
 	}
 
 	if (input.mode === 'quordle') {
-		const puzzle = pickDailyQuordle(graph, todayUTC(), input.boardCount, { seedKey });
+		const puzzle = pickDailyQuordle(graph, puzzleDate(), input.boardCount, { seedKey });
 		if (!puzzle) {
 			throw error(
 				400,
@@ -205,7 +205,7 @@ export function assertDailySolvable(input: ParsedGameInput, seedKey: string): vo
 		return;
 	}
 
-	const puzzle = pickDailyPuzzle(graph, input.target, todayUTC(), {
+	const puzzle = pickDailyPuzzle(graph, input.target, puzzleDate(), {
 		minSteps: input.minSteps,
 		rungsGiven: input.rungsGiven,
 		seedKey

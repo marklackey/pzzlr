@@ -1,7 +1,7 @@
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { pickDailyQuordle, scoreGuess, isWin } from '$lib/server/engine';
-import { todayUTC } from '$lib/server/date';
+import { puzzleDate } from '$lib/server/date';
 import { loadGameForMode } from '$lib/server/route-helpers';
 
 /**
@@ -20,7 +20,7 @@ export const POST: RequestHandler = async (event) => {
 
 	const body = await event.request.json().catch(() => null);
 	const guess = typeof body?.guess === 'string' ? body.guess.toLowerCase() : null;
-	const date = typeof body?.date === 'string' ? body.date : todayUTC();
+	const date = typeof body?.date === 'string' ? body.date : puzzleDate();
 	if (!guess) {
 		throw error(400, 'expected { guess: string, date?: string }');
 	}

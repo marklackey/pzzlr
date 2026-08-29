@@ -2,7 +2,7 @@ import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getAttempt } from '$lib/server/db/puzzle-attempts';
 import { pickDailyWord } from '$lib/server/engine';
-import { todayUTC } from '$lib/server/date';
+import { puzzleDate } from '$lib/server/date';
 import { loadGameForMode } from '$lib/server/route-helpers';
 
 /**
@@ -16,7 +16,7 @@ export const GET: RequestHandler = async (event) => {
 	const { params, url } = event;
 	const { config, graph } = await loadGameForMode(event, 'wordle', 'reveal');
 
-	const date = url.searchParams.get('date') ?? todayUTC();
+	const date = url.searchParams.get('date') ?? puzzleDate();
 	const token = url.searchParams.get('token');
 	if (!token) {
 		throw error(400, 'expected ?token=<attempt token>');

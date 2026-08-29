@@ -1,6 +1,6 @@
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { todayUTC } from '$lib/server/date';
+import { puzzleDate } from '$lib/server/date';
 import { loadGameForMode } from '$lib/server/route-helpers';
 import { getAttempt } from '$lib/server/db/puzzle-attempts';
 import { ladderPuzzle } from '$lib/server/ladder-attempt';
@@ -15,7 +15,7 @@ export const GET: RequestHandler = async (event) => {
 	const { params, url } = event;
 	const { config, graph } = await loadGameForMode(event, 'ladder', 'daily');
 
-	const date = url.searchParams.get('date') ?? todayUTC();
+	const date = url.searchParams.get('date') ?? puzzleDate();
 	const token = url.searchParams.get('token');
 
 	const puzzle = ladderPuzzle(graph, config, date);
