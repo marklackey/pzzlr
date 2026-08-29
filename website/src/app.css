@@ -75,6 +75,40 @@ a:hover {
 	box-sizing: border-box;
 }
 
+/* Running text pages (terms, privacy, support). Narrower than the app's
+   own layouts because long prose gets hard to track past ~70 characters a
+   line. */
+.prose {
+	max-width: 44rem;
+}
+.prose h2 {
+	font-size: 1.15rem;
+	margin: var(--space-8) 0 var(--space-3);
+}
+.prose h3 {
+	font-size: 1rem;
+	margin: var(--space-6) 0 var(--space-2);
+}
+.prose p,
+.prose li {
+	line-height: 1.65;
+	color: var(--color-text);
+}
+.prose p {
+	margin: 0 0 var(--space-3);
+}
+.prose ul {
+	margin: 0 0 var(--space-3);
+	padding-left: var(--space-6);
+}
+.prose li {
+	margin-bottom: var(--space-2);
+}
+.prose .updated {
+	color: var(--color-text-muted);
+	font-size: 0.9rem;
+}
+
 /* Present for screen readers and the document outline, but takes up no
    visual space — for a heading whose text is already shown some other way. */
 .sr-only {
