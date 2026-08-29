@@ -229,10 +229,14 @@ export interface TargetReach {
 	anchors: string[];
 	/**
 	 * Longest ladder that can end here, counting start and target. This is
-	 * the target's eccentricity, so it's the real ceiling on minSteps —
-	 * unlike a component's word count, which only bounds it from above
-	 * (a hub with four spokes holds five words but no five-word path, since
-	 * any route through it would have to pass the hub twice).
+	 * the target's eccentricity, so it's the real ceiling on minSteps.
+	 *
+	 * A component's word count only bounds that from above, and loosely: a
+	 * hub with four spokes holds five words, but the furthest any two of
+	 * them are apart is three (spoke, hub, spoke), so minSteps can never
+	 * exceed three there. Note this is about shortest paths, which is what
+	 * minSteps measures — a player's own ladder is a walk and may revisit
+	 * words freely, so it can be far longer than this.
 	 */
 	longestLadder: number;
 	/** Ladder word counts, keyed by the word a ladder would start from. */
