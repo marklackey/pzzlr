@@ -80,6 +80,27 @@
 	const connectivity = $derived(
 		graphStats.find((s) => s.size === dictionarySize && s.length === effectiveLength)
 	);
+	// The lengths graphs are actually built for — see the graphbuilder's
+	// -min-len/-max-len flags.
+	const MIN_WORD_LENGTH = 4;
+	const MAX_WORD_LENGTH = 8;
+
+	// The target sets the puzzle's length, so there's no length field to
+	// constrain in fixed-target mode. Rather than truncate what's typed or
+	// let it fail on submit, say which way it's wrong.
+	const targetLengthProblem = $derived.by(() => {
+		if (!hasFixedTarget || randomMode) return null;
+		const length = targetInput.trim().length;
+		if (length === 0) return null;
+		if (length < MIN_WORD_LENGTH) {
+			return `"${targetInput.trim().toUpperCase()}" is too short — ${length} letter${length === 1 ? '' : 's'}, and puzzles start at ${MIN_WORD_LENGTH}.`;
+		}
+		if (length > MAX_WORD_LENGTH) {
+			return `"${targetInput.trim().toUpperCase()}" is too long — ${length} letters, and puzzles stop at ${MAX_WORD_LENGTH}.`;
+		}
+		return null;
+	});
+
 	// What the typed-in target can actually support. Fetched rather than
 	// computed here because the dictionary lives on the server; debounced so
 	// typing a word doesn't fire a request per keystroke, and the in-flight
@@ -143,20 +164,13 @@
 		return `At ${connectivity.length} letters only ${Math.round(share * 100)}% of this dictionary's words connect into one group — the rest sit in fragments too small to build a ladder through. Puzzles will repeat sooner, and some target words won't be usable at all.`;
 	});
 
-	type StepId = 'basics' | 'puzzle' | 'difficulty' | 'review';
+	type StepId = 'basics' | 'puzzle' | 'review';
 	const STEP_LABEL: Record<StepId, string> = {
 		basics: 'Basics',
 		puzzle: 'Puzzle',
-		difficulty: 'Difficulty',
 		review: 'Review'
 	};
-	// Absurdle has nothing to configure in Difficulty (no guess cap, no
-	// secret) — skipped outright rather than shown empty or disabled.
-	const steps = $derived(
-		mode === 'absurdle'
-			? (['basics', 'puzzle', 'review'] as StepId[])
-			: (['basics', 'puzzle', 'difficulty', 'review'] as StepId[])
-	);
+	const steps: StepId[] = ['basics', 'puzzle', 'review'];
 	let stepIndex = $state(0);
 	const currentStep = $derived(steps[stepIndex] ?? steps[steps.length - 1]);
 
@@ -273,6 +287,35 @@
 	</section>
 
 	<section hidden={currentStep !== 'puzzle'}>
+		{#if hasFixedTarget && !randomMode}
+			<label>
+				{mode === 'wordle' ? 'Secret word' : 'Target word'}
+				<input name="target" bind:value={targetInput} required />
+			</label>
+			{#if targetLengthProblem}
+				<p class="warning">{targetLengthProblem}</p>
+			{/if}
+			<p class="field-note">
+				{#if targetLengthProblem}
+					Puzzles run from {MIN_WORD_LENGTH} to {MAX_WORD_LENGTH} letters.
+				{:else if targetInput.trim().length > 0}
+					Sets the puzzle to {targetInput.trim().length} letters.
+				{:else}
+					The word you pick sets the puzzle's length — anything from {MIN_WORD_LENGTH} to {MAX_WORD_LENGTH}
+					letters.
+				{/if}
+				{#if mode === 'wordle'}
+					This exact word is the answer every day — a one-off puzzle rather than a daily one. Turn
+					on daily mode for a new secret each day.
+				{/if}
+			</p>
+		{:else}
+			<label>
+				Word length
+				<input name="length" type="number" min="4" max="8" bind:value={lengthInput} required />
+			</label>
+		{/if}
+
 		<label>
 			Dictionary
 			<select name="dictionarySize" bind:value={dictionarySize}>
@@ -281,24 +324,6 @@
 				{/each}
 			</select>
 		</label>
-
-		{#if hasFixedTarget && !randomMode}
-			<label>
-				{mode === 'wordle' ? 'Secret word' : 'Target word'}
-				<input name="target" bind:value={targetInput} required minlength="4" maxlength="8" />
-			</label>
-			{#if mode === 'wordle'}
-				<p class="field-note">
-					This exact word is the answer every day — a one-off puzzle rather than a daily one. Turn
-					on daily mode for a new secret each day.
-				</p>
-			{/if}
-		{:else}
-			<label>
-				Word length
-				<input name="length" type="number" min="4" max="8" bind:value={lengthInput} required />
-			</label>
-		{/if}
 
 		{#if mode === 'ladder'}
 			<label>
@@ -310,6 +335,80 @@
 					</InfoTooltip>
 				</span>
 				<input name="minSteps" type="number" min="1" bind:value={minStepsInput} required />
+			</label>
+		{/if}
+		{#if mode === 'ladder'}
+			<div class="field-grid">
+				<label>
+					<span class="label-row">
+						Rungs given away
+						<InfoTooltip label="What does rungs given away mean?">
+							Words after the start handed over for free before the player has to guess anything
+							(0–4).
+						</InfoTooltip>
+					</span>
+					<input
+						name="rungsGiven"
+						type="number"
+						min="0"
+						max="4"
+						bind:value={rungsGivenInput}
+						required
+					/>
+				</label>
+			</div>
+		{:else if mode === 'quordle'}
+			<div class="field-grid">
+				<label>
+					<span class="label-row">
+						Boards
+						<InfoTooltip label="What does boards mean?">
+							How many secret words are guessed at once, sharing one guess stream.
+						</InfoTooltip>
+					</span>
+					<input
+						name="boardCount"
+						type="number"
+						min="2"
+						max="64"
+						bind:value={boardCountInput}
+						required
+					/>
+				</label>
+				<label>
+					Guesses allowed
+					<input
+						name="maxGuesses"
+						type="number"
+						min="1"
+						max="15"
+						bind:value={maxGuessesInput}
+						required
+					/>
+				</label>
+			</div>
+		{:else if mode === 'wordle'}
+			<label>
+				Guesses allowed
+				<input
+					name="maxGuesses"
+					type="number"
+					min="1"
+					max="15"
+					bind:value={maxGuessesInput}
+					required
+				/>
+			</label>
+		{/if}
+
+		{#if mode === 'wordle' || mode === 'quordle'}
+			<label class="checkbox">
+				<input type="checkbox" name="hardMode" bind:checked={hardModeInput} />
+				Hard mode
+				<InfoTooltip label="What is hard mode?">
+					Every hint has to be reused: a green letter stays where it is, and a yellow one appears
+					somewhere in each later guess.
+				</InfoTooltip>
 			</label>
 		{/if}
 
@@ -343,82 +442,6 @@
 			{/if}
 		{:else if checkingTarget && mode === 'ladder' && !randomMode}
 			<p class="reach muted">Checking that target…</p>
-		{/if}
-	</section>
-
-	<section hidden={currentStep !== 'difficulty'}>
-		{#if mode === 'wordle' || mode === 'quordle'}
-			<label class="checkbox">
-				<input type="checkbox" name="hardMode" bind:checked={hardModeInput} />
-				Hard mode
-				<InfoTooltip label="What is hard mode?">
-					Every hint has to be reused: a green letter stays where it is, and a yellow one appears
-					somewhere in each later guess.
-				</InfoTooltip>
-			</label>
-		{/if}
-		{#if mode === 'ladder'}
-			<div class="field-grid">
-				<label>
-					<span class="label-row">
-						Rungs given away
-						<InfoTooltip label="What does rungs given away mean?">
-							Words after the start handed over for free before the player has to guess anything
-							(0–4).
-						</InfoTooltip>
-					</span>
-					<input
-						name="rungsGiven"
-						type="number"
-						min="0"
-						max="4"
-						bind:value={rungsGivenInput}
-						required
-					/>
-				</label>
-			</div>
-		{:else if mode === 'quordle'}
-			<div class="field-grid">
-				<label>
-					Guesses allowed
-					<input
-						name="maxGuesses"
-						type="number"
-						min="1"
-						max="15"
-						bind:value={maxGuessesInput}
-						required
-					/>
-				</label>
-				<label>
-					<span class="label-row">
-						Boards
-						<InfoTooltip label="What does boards mean?">
-							How many secret words are guessed at once, sharing one guess stream.
-						</InfoTooltip>
-					</span>
-					<input
-						name="boardCount"
-						type="number"
-						min="2"
-						max="64"
-						bind:value={boardCountInput}
-						required
-					/>
-				</label>
-			</div>
-		{:else if mode === 'wordle'}
-			<label>
-				Guesses allowed
-				<input
-					name="maxGuesses"
-					type="number"
-					min="1"
-					max="15"
-					bind:value={maxGuessesInput}
-					required
-				/>
-			</label>
 		{/if}
 	</section>
 
