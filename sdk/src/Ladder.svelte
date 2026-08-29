@@ -168,7 +168,7 @@
 				{#if puzzleNumber}
 					<span class="puzzle-number">#{puzzleNumber}: {start.toUpperCase()}</span>
 				{/if}
-				<span class="target">Target <strong>{end.toUpperCase()}</strong></span>
+				<span class="target">Spell <strong>{end.toUpperCase()}</strong>!</span>
 			</div>
 
 			<div class="board" bind:this={boardEl}>

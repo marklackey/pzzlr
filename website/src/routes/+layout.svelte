@@ -21,8 +21,11 @@
 		<a class="brand" href={resolve('/')}>🪜 Pzzlr</a>
 		<div class="nav-links">
 			<a href={resolve('/explore')}>Explore</a>
+			<!-- Shown signed out too: /games explains that making your own games
+			     needs an account, which is a better introduction to the feature
+			     than hiding it until you already have one. -->
+			<a href={resolve('/games')}>My games</a>
 			{#if data.user}
-				<a href={resolve('/games')}>My games</a>
 				<button type="button" class="btn btn-secondary btn-sm" onclick={signOut}>Sign out</button>
 			{:else}
 				<a class="btn btn-primary btn-sm" href={resolve('/login')}>Sign in</a>
