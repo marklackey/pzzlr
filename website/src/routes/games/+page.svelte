@@ -9,10 +9,14 @@
 	{#if !data.signedIn}
 		<h1>My games</h1>
 		<div class="card signed-out">
-			<p class="lead">Making your own games needs an account.</p>
+			<p class="lead">Make your own word games.</p>
 			<p>
-				With one you can create your own word games — pick the target word, the dictionary, and how
-				hard it should be — then share them or embed them anywhere.
+				Build a ladder, a Wordle, a Quordle, or an Absurdle. You set the word, the dictionary, and
+				how hard it plays, and Pzzlr generates a fresh puzzle from it every day.
+			</p>
+			<p>
+				Every game gets a link of its own and a snippet for embedding it in your site. Sign in and
+				the ones you make will live on this page.
 			</p>
 			<div class="actions">
 				<a class="btn btn-primary" href={resolve('/login')}>Sign in or create an account</a>
