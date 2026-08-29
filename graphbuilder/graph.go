@@ -73,3 +73,41 @@ func buildGraphForLength(length int, words []string) *LengthGraph {
 
 	return &LengthGraph{Length: length, Words: words, Adjacency: adjacency}
 }
+
+// ComponentStats counts the graph's connected components and measures its
+// largest, by flood-filling from each unvisited word.
+//
+// A word ladder is a walk along edges, so it can only ever run between two
+// words in the same component — words in different ones are unreachable
+// from each other however many steps you allow. That makes these the
+// numbers that say whether a given length is really playable: an isolated
+// word is just a component of size one, and a length whose largest
+// component holds a small share of its words is mostly unusable even
+// though the word count looks healthy.
+func ComponentStats(g *LengthGraph) (components int, largest int) {
+	seen := make([]bool, len(g.Words))
+	queue := make([]int, 0, len(g.Words))
+
+	for i := range g.Words {
+		if seen[i] {
+			continue
+		}
+		components++
+		size := 0
+		seen[i] = true
+		queue = append(queue[:0], i)
+		for head := 0; head < len(queue); head++ {
+			size++
+			for _, n := range g.Adjacency[queue[head]] {
+				if !seen[n] {
+					seen[n] = true
+					queue = append(queue, n)
+				}
+			}
+		}
+		if size > largest {
+			largest = size
+		}
+	}
+	return components, largest
+}

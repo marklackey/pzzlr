@@ -219,3 +219,38 @@ describe('pickDailyPuzzle', () => {
 		});
 	});
 });
+
+describe('component-aware puzzle picking', () => {
+	// cat-cot-cog-dog is a four-word chain; bevy-levy an island of two.
+	const islands: WordGraphData = {
+		length: 3,
+		words: ['cat', 'cot', 'cog', 'dog', 'hut', 'zzz'],
+		// hut and zzz are alone; cat-cot-cog-dog form the chain.
+		adjacency: [[1], [0, 2], [1, 3], [2], [], []]
+	};
+
+	it('refuses a target whose island is too small to hold the ladder', () => {
+		const g = new WordGraph(islands);
+		// hut has no neighbours, so no ladder of any length can end there.
+		expect(pickDailyPuzzle(g, 'hut', '2026-08-29', { minSteps: 2 })).toBeNull();
+	});
+
+	it('still builds one when the target has a big enough island', () => {
+		const g = new WordGraph(islands);
+		const puzzle = pickDailyPuzzle(g, 'dog', '2026-08-29', { minSteps: 4 });
+		expect(puzzle?.target).toBe('dog');
+		expect(puzzle?.start).toBe('cat');
+	});
+
+	it('never pairs words from different islands', () => {
+		const g = new WordGraph(islands);
+		for (let day = 1; day <= 20; day++) {
+			const puzzle = pickDailyPuzzle(g, null, `2026-08-${String(day).padStart(2, '0')}`, {
+				minSteps: 3,
+				seedKey: 'game'
+			});
+			if (!puzzle) continue;
+			expect(g.sameComponent(puzzle.start, puzzle.target)).toBe(true);
+		}
+	});
+});

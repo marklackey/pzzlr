@@ -89,3 +89,29 @@ func TestLoadWords_FiltersNonAlpha(t *testing.T) {
 		t.Errorf("LoadWords = %v, want %v", words, want)
 	}
 }
+
+func TestComponentStats(t *testing.T) {
+	// cat-cot-cog-dog is one chain, elm-ell a pair that touches nothing else
+	// (every chain word starts c/d), and zzz is alone. Three components, the
+	// largest holding four.
+	g := buildGraphForLength(3, []string{"cat", "cot", "cog", "dog", "elm", "ell", "zzz"})
+
+	components, largest := ComponentStats(g)
+	if components != 3 {
+		t.Errorf("components = %d, want 3", components)
+	}
+	if largest != 4 {
+		t.Errorf("largest = %d, want 4", largest)
+	}
+}
+
+func TestComponentStatsCountsEveryWordWhenAllIsolated(t *testing.T) {
+	// No two of these are one letter apart, so each is its own component —
+	// the shape that makes a length unplayable however many words it has.
+	g := buildGraphForLength(3, []string{"abc", "xyz", "pqr"})
+
+	components, largest := ComponentStats(g)
+	if components != 3 || largest != 1 {
+		t.Errorf("components, largest = %d, %d; want 3, 1", components, largest)
+	}
+}

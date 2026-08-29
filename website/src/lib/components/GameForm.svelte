@@ -8,7 +8,18 @@
 	} from '$lib/types';
 	import InfoTooltip from './InfoTooltip.svelte';
 
+	interface GraphStat {
+		size: number;
+		length: number;
+		wordCount: number;
+		isolated: number;
+		components: number;
+		largestComponent: number;
+	}
+
 	interface Props {
+		/** Connectivity per (dictionary, length) — see $lib/server/graph-stats. */
+		graphStats?: GraphStat[];
 		mode?: 'ladder' | 'wordle' | 'quordle' | 'absurdle';
 		target?: string | null;
 		length?: number;
@@ -24,6 +35,7 @@
 	}
 
 	let {
+		graphStats = [],
 		mode = $bindable('ladder'),
 		target = null,
 		length = 4,
@@ -54,6 +66,23 @@
 	let boardCountInput = $state(untrack(() => boardCount));
 
 	const hasFixedTarget = $derived(mode === 'ladder' || mode === 'wordle');
+
+	// Only ladders care about connectivity: they walk one letter at a time,
+	// so both ends have to sit in the same island of mutually reachable
+	// words. The guessing modes just need the word to exist, and are
+	// unaffected however fragmented the graph is.
+	const effectiveLength = $derived(
+		hasFixedTarget && !randomMode ? targetInput.trim().length : lengthInput
+	);
+	const connectivity = $derived(
+		graphStats.find((s) => s.size === dictionarySize && s.length === effectiveLength)
+	);
+	const ladderWarning = $derived.by(() => {
+		if (mode !== 'ladder' || !connectivity) return null;
+		const share = connectivity.largestComponent / connectivity.wordCount;
+		if (share >= 0.5) return null;
+		return `At ${connectivity.length} letters only ${Math.round(share * 100)}% of this dictionary's words connect into one group — the rest sit in fragments too small to build a ladder through. Puzzles will repeat sooner, and some target words won't be usable at all.`;
+	});
 
 	type StepId = 'basics' | 'puzzle' | 'difficulty' | 'visibility' | 'review';
 	const STEP_LABEL: Record<StepId, string> = {
@@ -179,13 +208,17 @@
 		{#if hasFixedTarget && !randomMode}
 			<label>
 				{mode === 'wordle' ? 'Secret word' : 'Target word'}
-				<input name="target" bind:value={targetInput} required minlength="3" maxlength="8" />
+				<input name="target" bind:value={targetInput} required minlength="4" maxlength="8" />
 			</label>
 		{:else}
 			<label>
 				Word length
-				<input name="length" type="number" min="3" max="8" bind:value={lengthInput} required />
+				<input name="length" type="number" min="4" max="8" bind:value={lengthInput} required />
 			</label>
+		{/if}
+
+		{#if ladderWarning}
+			<p class="warning">{ladderWarning}</p>
 		{/if}
 	</section>
 
@@ -451,5 +484,15 @@
 		.field-grid {
 			grid-template-columns: 1fr 1fr;
 		}
+	}
+	.warning {
+		margin: var(--space-3) 0 0;
+		padding: var(--space-3);
+		border-radius: var(--radius-sm);
+		background: #fdf6e3;
+		border: 1px solid #e6d9a8;
+		color: #6b5518;
+		font-size: 0.85rem;
+		line-height: 1.5;
 	}
 </style>

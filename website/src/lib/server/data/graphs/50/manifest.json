@@ -1,38 +1,42 @@
 [
   {
-    "length": 3,
-    "wordCount": 613,
-    "edgeCount": 3464,
-    "isolated": 11
-  },
-  {
     "length": 4,
     "wordCount": 2343,
     "edgeCount": 10006,
-    "isolated": 79
+    "isolated": 79,
+    "components": 98,
+    "largestComponent": 2189
   },
   {
     "length": 5,
     "wordCount": 4486,
     "edgeCount": 10204,
-    "isolated": 626
+    "isolated": 626,
+    "components": 781,
+    "largestComponent": 3373
   },
   {
     "length": 6,
     "wordCount": 7087,
     "edgeCount": 9105,
-    "isolated": 2094
+    "isolated": 2094,
+    "components": 2662,
+    "largestComponent": 2825
   },
   {
     "length": 7,
     "wordCount": 9646,
     "edgeCount": 8170,
-    "isolated": 4116
+    "isolated": 4116,
+    "components": 5055,
+    "largestComponent": 1383
   },
   {
     "length": 8,
     "wordCount": 10164,
     "edgeCount": 3788,
-    "isolated": 5946
+    "isolated": 5946,
+    "components": 7209,
+    "largestComponent": 424
   }
 ]

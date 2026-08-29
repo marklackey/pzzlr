@@ -121,10 +121,23 @@ function findPuzzle(graph: WordGraph, options: PickPuzzleOptions = {}): PuzzleWi
 	if (words.length < 2) return null;
 	if (fixedEnd !== undefined && !graph.has(fixedEnd)) return null;
 
+	// A ladder is a walk along edges, so it can't leave its component or
+	// visit more words than that component holds: anything smaller than
+	// minSteps can't contain a puzzle of this difficulty, however many times
+	// we sample it. Checking that up front turns "no puzzle exists" from
+	// something we discover by burning every attempt on doomed pairs into an
+	// immediate, explainable answer — the create form reports it rather than
+	// letting the game 404 its own daily puzzle later.
+	if (fixedEnd !== undefined && graph.componentSize(fixedEnd) < minSteps) return null;
+
 	for (let attempt = 0; attempt < maxAttempts; attempt++) {
 		const start = words[Math.floor(random() * words.length)];
+		if (graph.componentSize(start) < minSteps) continue;
 		const end = fixedEnd ?? words[Math.floor(random() * words.length)];
 		if (start === end) continue;
+		// Cheap reject before the breadth-first search: unrelated islands can
+		// never be joined, and at long word lengths most random pairs are.
+		if (!graph.sameComponent(start, end)) continue;
 
 		const path = shortestPath(graph, start, end);
 		if (!path) continue;

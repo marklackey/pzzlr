@@ -28,13 +28,20 @@ type manifestEntry struct {
 	WordCount int `json:"wordCount"`
 	EdgeCount int `json:"edgeCount"`
 	Isolated  int `json:"isolated"`
+	// A ladder can only run between two words in the same connected
+	// component, so these describe what's actually playable at this length
+	// rather than just how many words exist. LargestComponent is the pool a
+	// puzzle almost always comes from; when it's a small fraction of
+	// WordCount, most words sit in fragments too small to build a ladder in.
+	Components       int `json:"components"`
+	LargestComponent int `json:"largestComponent"`
 }
 
 func main() {
 	size := flag.Int("size", 80, "ESDB size tier to build (50, 60, or 80 — matches a data/esdb/words-<size>-A.txt file); also picks the default -output subdirectory")
 	input := flag.String("input", "", "path to raw ESDB word-list export (default: data/esdb/words-<size>-A.txt)")
 	outputDir := flag.String("output", "", "directory to write graph-<length>.json files into (default: output/<size>)")
-	minLen := flag.Int("min-len", 3, "minimum word length to include")
+	minLen := flag.Int("min-len", 4, "minimum word length to include")
 	maxLen := flag.Int("max-len", 8, "maximum word length to include")
 	flag.Parse()
 
@@ -66,7 +73,7 @@ func main() {
 	sort.Ints(lengths)
 
 	manifest := make([]manifestEntry, 0, len(lengths))
-	fmt.Printf("%-6s %10s %10s %10s\n", "length", "words", "edges", "isolated")
+	fmt.Printf("%-6s %10s %10s %10s %11s %10s\n", "length", "words", "edges", "isolated", "components", "largest")
 	for _, length := range lengths {
 		g := graphs[length]
 
@@ -80,12 +87,16 @@ func main() {
 		}
 		edges /= 2 // each edge counted from both endpoints
 
-		fmt.Printf("%-6d %10d %10d %10d\n", length, len(g.Words), edges, isolated)
+		components, largest := ComponentStats(g)
+
+		fmt.Printf("%-6d %10d %10d %10d %11d %10d\n", length, len(g.Words), edges, isolated, components, largest)
 		manifest = append(manifest, manifestEntry{
-			Length:    length,
-			WordCount: len(g.Words),
-			EdgeCount: edges,
-			Isolated:  isolated,
+			Length:           length,
+			WordCount:        len(g.Words),
+			EdgeCount:        edges,
+			Isolated:         isolated,
+			Components:       components,
+			LargestComponent: largest,
 		})
 
 		out := graphFile{Length: g.Length, Words: g.Words, Adjacency: g.Adjacency}

@@ -2,12 +2,15 @@ import { fail, isHttpError, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { gameFormToBody } from '$lib/server/game-input';
 import { createGame } from '$lib/server/game-mutations';
+import { graphStats } from '$lib/server/graph-stats';
 
 export const load: PageServerLoad = ({ locals }) => {
 	if (!locals.user) {
 		redirect(302, '/login');
 	}
-	return {};
+	// Lets the form warn about lengths where a ladder mostly can't be built
+	// — see the connectivity note in graph-stats.ts.
+	return { graphStats: graphStats() };
 };
 
 export const actions: Actions = {

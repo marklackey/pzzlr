@@ -95,6 +95,7 @@
 					</div>
 					<form method="post" action="?/update">
 						<GameForm
+							graphStats={data.graphStats}
 							submitLabel="Save changes"
 							mode={data.config.mode}
 							target={data.config.target}

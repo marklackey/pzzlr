@@ -1,6 +1,7 @@
 import { error, fail, isHttpError, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { canManageGame, getGameConfig, withoutSecret } from '$lib/server/db/games';
+import { graphStats } from '$lib/server/graph-stats';
 import { gameFormToBody } from '$lib/server/game-input';
 import { deleteGame, rotateEmbedKey, updateGame } from '$lib/server/game-mutations';
 
@@ -19,7 +20,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	// *every* visitor, manager or not — a wordle game's secret has to be
 	// stripped here for the same reason the API strips it. See
 	// withoutSecret.
-	return { config: withoutSecret(config, canManage), canManage };
+	return { config: withoutSecret(config, canManage), canManage, graphStats: graphStats() };
 };
 
 /** Runs a game-mutations call and turns its thrown HttpError into a form fail() — the one conversion every action below needs. */

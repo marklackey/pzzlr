@@ -1,8 +1,8 @@
 <script lang="ts">
-	import type { ActionData } from './$types';
+	import type { ActionData, PageData } from './$types';
 	import GameForm from '$lib/components/GameForm.svelte';
 
-	let { form }: { form: ActionData } = $props();
+	let { data, form }: { data: PageData; form: ActionData } = $props();
 
 	let mode = $state<'ladder' | 'wordle' | 'quordle' | 'absurdle'>('ladder');
 	let randomMode = $state(false);
@@ -31,7 +31,7 @@
 	</p>
 
 	<form method="post" class="card">
-		<GameForm submitLabel="Create" bind:mode bind:randomMode />
+		<GameForm submitLabel="Create" graphStats={data.graphStats} bind:mode bind:randomMode />
 	</form>
 
 	{#if form?.message}
