@@ -139,6 +139,14 @@ export function parseGameInput(body: unknown): ParsedGameInput {
 		throw error(400, 'boardCount must be between 2 and 64');
 	}
 
+	// Enforced here as well as in the form: a name is what a game is called
+	// everywhere it appears — its own page, Explore, the owner's list — and
+	// it's also what its readable URL comes from (see generateGameId), so a
+	// nameless game falls back to a uuid nobody can recognise.
+	if (!name || name.trim().length === 0) {
+		throw error(400, 'a game needs a name');
+	}
+
 	const graph = getGraph(length, dictionarySize);
 	if (!graph) {
 		throw error(400, `no graph for length ${length} at dictionary size ${dictionarySize}`);

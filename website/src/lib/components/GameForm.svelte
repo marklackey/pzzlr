@@ -246,7 +246,7 @@
 	<section hidden={currentStep !== 'basics'}>
 		<label>
 			Name
-			<input name="name" placeholder="e.g. Cakeward" bind:value={nameInput} />
+			<input name="name" placeholder="e.g. Cakeward" bind:value={nameInput} required />
 		</label>
 		<!-- Up front with the other defining choices rather than tucked next to
 		     the summary: this is set to become a paid option, so it needs to be
