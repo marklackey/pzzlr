@@ -4,9 +4,13 @@ import { pickDailyPuzzle, pickDailyQuordle, pickDailyWord, reachTarget } from '.
 import { puzzleDate } from './date';
 import {
 	DEFAULT_DICTIONARY_SIZE,
+	DEFAULT_HARD_MODE,
 	DICTIONARY_SIZES,
+	HARD_MODES,
 	isDictionarySize,
-	type DictionarySize
+	isHardModePolicy,
+	type DictionarySize,
+	type HardModePolicy
 } from '$lib/types';
 
 export type GameMode = 'ladder' | 'wordle' | 'quordle' | 'absurdle';
@@ -26,8 +30,8 @@ export interface ParsedGameInput {
 	maxGuesses: number;
 	/** quordle mode only — how many simultaneous secret words one guess stream is scored against. */
 	boardCount: number;
-	/** wordle/quordle only: revealed hints must be reused. See schema.ts. */
-	hardMode: boolean;
+	/** wordle only: whether revealed hints must be reused, may be, or can't. See HardModePolicy in $lib/types. */
+	hardMode: HardModePolicy;
 	name?: string;
 	public: boolean;
 }
@@ -53,7 +57,7 @@ export function gameFormToBody(formData: FormData): Record<string, unknown> {
 	const rungsGiven = Number(formData.get('rungsGiven') || 0);
 	const maxGuesses = Number(formData.get('maxGuesses') || 6);
 	const boardCount = Number(formData.get('boardCount') || 4);
-	const hardMode = formData.get('hardMode') === 'on';
+	const hardMode = formData.get('hardMode')?.toString();
 	const name = formData.get('name')?.toString().trim() || undefined;
 	const isPrivate = formData.get('private') === 'on';
 	return {
@@ -105,14 +109,18 @@ export function parseGameInput(body: unknown): ParsedGameInput {
 	const rungsGiven = typeof b?.rungsGiven === 'number' ? b.rungsGiven : 0;
 	const maxGuesses = typeof b?.maxGuesses === 'number' ? b.maxGuesses : 6;
 	const boardCount = typeof b?.boardCount === 'number' ? b.boardCount : 4;
-	const hardMode = b?.hardMode === true;
+	// Only wordle offers it, so every other mode stores the same "not on
+	// offer" value whatever a caller sends — see HardModePolicy in
+	// $lib/types for why quordle in particular doesn't get it.
+	const hardMode: HardModePolicy =
+		mode === 'wordle' && isHardModePolicy(b?.hardMode) ? b.hardMode : DEFAULT_HARD_MODE;
 	const name = typeof b?.name === 'string' && b.name.length > 0 ? b.name : undefined;
 	const isPublic = typeof b?.public === 'boolean' ? b.public : true;
 
 	if (!length) {
 		throw error(
 			400,
-			'expected { mode?: "ladder" | "wordle" | "quordle" | "absurdle", target?: string, length: number, dictionarySize?: 50 | 60 | 80, minSteps?: number, rungsGiven?: number, maxGuesses?: number, boardCount?: number, hardMode?: boolean, name?: string }'
+			`expected { mode?: "ladder" | "wordle" | "quordle" | "absurdle", target?: string, length: number, dictionarySize?: 50 | 60 | 80, minSteps?: number, rungsGiven?: number, maxGuesses?: number, boardCount?: number, hardMode?: ${HARD_MODES.map((m) => `"${m}"`).join(' | ')}, name?: string }`
 		);
 	}
 

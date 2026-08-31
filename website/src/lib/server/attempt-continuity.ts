@@ -5,7 +5,12 @@ import type { AttemptConfig } from './db/schema';
 /** Anything carrying the settings a puzzle is built from — a stored game row, or a snapshot merged over one. */
 type GameSettings = AttemptConfig & Record<string, unknown>;
 
-/** The subset of a game worth remembering on an attempt — see the config column in schema.ts. */
+/**
+ * The subset of a game worth remembering on an attempt — see the config
+ * column in schema.ts. Hard mode isn't in it: an attempt records the yes/no
+ * it is actually being played under in its own column, which is more
+ * specific than the game's policy and already survives an edit.
+ */
 export function snapshotOf(config: GameSettings): AttemptConfig {
 	return {
 		mode: config.mode,
@@ -14,8 +19,7 @@ export function snapshotOf(config: GameSettings): AttemptConfig {
 		dictionarySize: config.dictionarySize,
 		minSteps: config.minSteps,
 		rungsGiven: config.rungsGiven,
-		maxGuesses: config.maxGuesses,
-		hardMode: config.hardMode
+		maxGuesses: config.maxGuesses
 	};
 }
 

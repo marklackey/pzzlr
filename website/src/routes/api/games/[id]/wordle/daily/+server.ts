@@ -39,7 +39,11 @@ export const GET: RequestHandler = async (event) => {
 	const resumed = attempt
 		? {
 				guesses: attempt.guesses.map((guess) => scoreGuess(puzzle.target, guess)),
-				solved: attempt.solved
+				solved: attempt.solved,
+				// What this attempt is actually being played under, which on an
+				// 'optional' game is the player's own settled answer rather than
+				// anything the game says now. See the hardMode column in schema.ts.
+				hardMode: attempt.hardMode
 			}
 		: null;
 
@@ -51,6 +55,10 @@ export const GET: RequestHandler = async (event) => {
 		puzzleNumber: puzzle.puzzleNumber,
 		length: puzzle.length,
 		maxGuesses: config.maxGuesses,
+		// The game's policy, for a board with no attempt yet: whether the
+		// widget shows hard mode as on, off, or the player's to choose. See
+		// HardModePolicy in $lib/types.
+		hardMode: config.hardMode,
 		resumed
 	});
 };

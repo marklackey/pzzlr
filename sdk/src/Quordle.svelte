@@ -25,6 +25,15 @@
 	let maxGuesses = $state(9);
 	let boardCount = $state(4);
 	let puzzleNumber = $state<number | null>(null);
+	/**
+	 * Which day's board set this is (YYYY-MM-DD), fixed when it loaded.
+	 * Every guess and the reveal are sent against this day rather than
+	 * whatever "today" has since become, so a board set that was open when
+	 * the puzzle rolled over (US Eastern midnight — mid-evening in the west)
+	 * plays out as the one the player started, instead of being scored
+	 * against tomorrow's secrets. A reload is what moves them on.
+	 */
+	let puzzleDay = $state<string | null>(null);
 	let gameName = $state<string | null>(null);
 	// One guessed word per row, shared across every board. boardResults[i] is
 	// board i's per-guess scoring; boardSolvedAt[i] is the 1-based guess
@@ -41,7 +50,8 @@
 
 	const allSolved = $derived(boardSolvedAt.length > 0 && boardSolvedAt.every((v) => v !== null));
 
-	async function loadPuzzle() {
+	/** Loads `day`'s board set, defaulting to the `date` override, or to today when there's neither. */
+	async function loadPuzzle(day: string | undefined = date || undefined) {
 		if (!game) {
 			message = 'missing required "game" attribute (a stored game config id)';
 			status = 'error';
@@ -52,7 +62,7 @@
 		message = '';
 		try {
 			const params = new URLSearchParams();
-			if (date) params.set('date', date);
+			if (day) params.set('date', day);
 			const qs = params.toString();
 			const res = await fetch(`${apibase}/api/games/${game}/quordle/daily${qs ? `?${qs}` : ''}`, {
 				headers: authHeaders(apikey)
@@ -64,6 +74,7 @@
 			maxGuesses = data.maxGuesses;
 			boardCount = data.boardCount;
 			puzzleNumber = data.puzzleNumber ?? null;
+			puzzleDay = data.date ?? null;
 			gameName = data.name ?? null;
 			guesses = [];
 			boardResults = Array.from({ length: boardCount }, () => []);
@@ -82,7 +93,10 @@
 	async function reveal() {
 		try {
 			const params = new URLSearchParams();
-			if (date) params.set('date', date);
+			// This board set's day, not today's — the secrets to show are the
+			// ones it was played against. See puzzleDay.
+			const day = puzzleDay ?? (date || undefined);
+			if (day) params.set('date', day);
 			const qs = params.toString();
 			const res = await fetch(`${apibase}/api/games/${game}/quordle/reveal${qs ? `?${qs}` : ''}`, {
 				headers: authHeaders(apikey)
@@ -100,7 +114,9 @@
 		const res = await fetch(`${apibase}/api/games/${game}/quordle/guess`, {
 			method: 'POST',
 			headers: { 'content-type': 'application/json', ...authHeaders(apikey) },
-			body: JSON.stringify({ guess, date: date || undefined })
+			// The day is this board set's own (see puzzleDay), not today's — the
+			// guess is scored against the secrets being played.
+			body: JSON.stringify({ guess, date: puzzleDay ?? (date || undefined) })
 		});
 		const result = await res.json();
 

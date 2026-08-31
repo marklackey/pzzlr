@@ -38,3 +38,25 @@ export function ladderPuzzle(
 export function ladderChain(puzzle: DailyPuzzle, guesses: string[]): string[] {
 	return [puzzle.start, ...puzzle.revealedRungs, ...guesses];
 }
+
+/**
+ * Whether the board a client is stepping from is still the board its
+ * attempt is actually on.
+ *
+ * `from` is the last word the client has on screen. It is a check and
+ * nothing else — the step is always taken from the stored attempt (see the
+ * guess route), so naming a word here can't move the ladder, only refuse a
+ * guess. A client that sends nothing is trusted as before, which keeps an
+ * older embedded copy of the widget working.
+ *
+ * The two come apart when something else moves the attempt on: a second
+ * tab on the same token taking its own steps, or a client that doesn't say
+ * which day's board it is on (see the guess route's `date`) still sitting
+ * on a ladder the rollover has since replaced. Judging the guess anyway
+ * measures it against a word the player can't see — «"arms" isn't one
+ * letter away from "laze"» — and a guess that happens to fit the other
+ * ladder lands on it silently, which is worse.
+ */
+export function boardIsCurrent(chain: string[], from: string | null | undefined): boolean {
+	return !from || from === chain[chain.length - 1];
+}

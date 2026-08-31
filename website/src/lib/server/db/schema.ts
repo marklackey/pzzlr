@@ -1,4 +1,5 @@
 import { integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { HARD_MODES, DEFAULT_HARD_MODE } from '$lib/types';
 import { user } from './auth.schema';
 
 // One row per "clone with a different name" — the target word (and whatever
@@ -47,11 +48,15 @@ export const gameConfig = sqliteTable('game_config', {
 	// puzzle" means the same challenge for everyone, same reasoning as
 	// minSteps.
 	maxGuesses: integer('max_guesses').notNull().default(6),
-	// wordle/quordle modes only: whether hints already revealed have to be
-	// reused in later guesses — a green letter kept in place, a yellow one
-	// kept somewhere. Enforced server-side in the guess routes, since a
-	// client-side check would just be advice.
-	hardMode: integer('hard_mode', { mode: 'boolean' }).notNull().default(false),
+	// wordle mode only: what the game says about hard mode, where hints
+	// already revealed have to be reused in later guesses — a green letter
+	// kept in place, a yellow one kept somewhere. 'optional' leaves it to
+	// the player, whose answer is recorded on their own attempt (see the
+	// hardMode column below) rather than here. Enforced server-side in the
+	// guess route, since a client-side check would just be advice. See
+	// HardModePolicy in $lib/types for why this isn't a boolean, and why
+	// quordle doesn't offer it.
+	hardMode: text('hard_mode', { enum: HARD_MODES }).notNull().default(DEFAULT_HARD_MODE),
 	// quordle mode only: how many simultaneous secret words a single shared
 	// guess stream is scored against. Pinned per-game for the same reason
 	// every other daily-shape knob is — see pickDailyQuordle.
@@ -90,7 +95,6 @@ export interface AttemptConfig {
 	minSteps: number;
 	rungsGiven: number;
 	maxGuesses: number;
-	hardMode: boolean;
 }
 
 /**
@@ -133,6 +137,14 @@ export const puzzleAttempt = sqliteTable(
 		// for attempts started before this column existed, which fall back to
 		// the game's current settings.
 		config: text('config', { mode: 'json' }).$type<AttemptConfig>(),
+		// Whether this particular attempt is being played under hard mode —
+		// settled when the attempt is created (its first guess) and never
+		// after, so a player can't drop the rule for one awkward guess and
+		// pick it back up. Follows from the game's policy for a 'required'
+		// or 'forbidden' game; on an 'optional' one it's the player's own
+		// answer, which is why it lives here and not only on the game. See
+		// HardModePolicy in $lib/types.
+		hardMode: integer('hard_mode', { mode: 'boolean' }).notNull().default(false),
 		solved: integer('solved', { mode: 'boolean' }).notNull().default(false),
 		createdAt: integer('created_at', { mode: 'timestamp' })
 			.notNull()

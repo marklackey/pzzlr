@@ -4,7 +4,7 @@ import { checkStep } from '$lib/server/engine';
 import { puzzleDate } from '$lib/server/date';
 import { loadGameForMode } from '$lib/server/route-helpers';
 import { appendGuess, getOrCreateAttempt } from '$lib/server/db/puzzle-attempts';
-import { ladderChain, ladderPuzzle } from '$lib/server/ladder-attempt';
+import { boardIsCurrent, ladderChain, ladderPuzzle } from '$lib/server/ladder-attempt';
 import { settingsForAttempt, snapshotOf } from '$lib/server/attempt-continuity';
 
 /**
@@ -17,7 +17,8 @@ import { settingsForAttempt, snapshotOf } from '$lib/server/attempt-continuity';
  * taken from the request: a caller that could name its own `current` could
  * skip straight to a word next to the target and "solve" in one step. See
  * the comment on puzzleAttempt in schema.ts for how far this trust model
- * goes (and doesn't).
+ * goes (and doesn't). The request's optional `from` doesn't change that —
+ * it can only refuse a guess, never place one (see boardIsCurrent).
  *
  * Game-scoped rather than a generic /api/ladder/guess so a
  * smaller-dictionary game actually rejects words that only exist in a
@@ -30,9 +31,18 @@ export const POST: RequestHandler = async (event) => {
 	const body = await event.request.json().catch(() => null);
 	const guess = typeof body?.guess === 'string' ? body.guess.toLowerCase() : null;
 	const token = typeof body?.token === 'string' && body.token.length > 0 ? body.token : null;
-	const date = typeof body?.date === 'string' ? body.date : puzzleDate();
+	// The day the caller's board is playing, which needn't be today: a
+	// ladder that was on screen when the puzzle rolled over goes on being
+	// that day's ladder until it's done, rather than having the new day's
+	// swapped in underneath it — the same "finish what you started" rule
+	// attempt-continuity applies to a game's settings. Today's is the
+	// default, for a caller that doesn't say which board it's on.
+	const date = typeof body?.date === 'string' && body.date ? body.date : puzzleDate();
+	// Optional: the word the caller's board ends on, checked against this
+	// attempt's own last word below. See boardIsCurrent.
+	const from = typeof body?.from === 'string' ? body.from.toLowerCase() : null;
 	if (!guess || !token) {
-		throw error(400, 'expected { guess: string, token: string, date?: string }');
+		throw error(400, 'expected { guess: string, token: string, from?: string, date?: string }');
 	}
 
 	const attempt = await getOrCreateAttempt(
@@ -54,6 +64,12 @@ export const POST: RequestHandler = async (event) => {
 
 	const chain = ladderChain(puzzle, attempt.guesses);
 	const current = chain[chain.length - 1];
+	// A board that isn't this ladder gets no answer about it — 409 is the
+	// same "resync, don't press on" signal the solved case sends, and the
+	// widget already reloads on it. See boardIsCurrent for what drifts.
+	if (!boardIsCurrent(chain, from)) {
+		throw error(409, "that board isn't the current ladder");
+	}
 	// config.target may be a word the dictionary doesn't hold — see checkStep.
 	const step = checkStep(graph, current, guess, config.target ?? undefined);
 

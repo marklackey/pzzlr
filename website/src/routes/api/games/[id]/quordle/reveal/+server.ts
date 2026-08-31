@@ -13,12 +13,17 @@ import { loadGameForMode } from '$lib/server/route-helpers';
  * determined caller could call it early; that's the same soft, anonymous
  * trust model the wordle attempt token already rides on (see puzzleAttempt
  * in schema.ts), just without even the token-based speed bump.
+ *
+ * The day is the caller's board's (`?date=`), so a board set that ran out
+ * of guesses just after the rollover reveals the words it was actually
+ * played against rather than tomorrow's — see the widget's puzzleDay.
  */
 export const GET: RequestHandler = async (event) => {
 	const { params, url } = event;
 	const { config, graph } = await loadGameForMode(event, 'quordle', 'reveal');
 
-	const date = url.searchParams.get('date') ?? puzzleDate();
+	// An empty ?date= means the same as none: today's.
+	const date = url.searchParams.get('date') || puzzleDate();
 
 	const puzzle = pickDailyQuordle(graph, date, config.boardCount, { seedKey: config.id });
 	if (!puzzle) {

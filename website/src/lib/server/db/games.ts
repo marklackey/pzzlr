@@ -1,4 +1,5 @@
 import { and, desc, eq, like, or, sql } from 'drizzle-orm';
+import type { HardModePolicy } from '$lib/types';
 import { getDb } from './index';
 import { gameConfig } from './schema';
 
@@ -18,8 +19,8 @@ export interface NewGameConfig {
 	maxGuesses?: number;
 	/** quordle mode only. Defaults to 4 (the column default) when omitted. See schema.ts. */
 	boardCount?: number;
-	/** wordle/quordle only: revealed hints must be reused. See schema.ts. */
-	hardMode?: boolean;
+	/** wordle only: whether revealed hints must be reused, may be, or can't. Defaults to 'forbidden' (the column default). See schema.ts. */
+	hardMode?: HardModePolicy;
 	/** Null for games not created by a logged-in user (e.g. the seed script). */
 	ownerId?: string | null;
 	/** Defaults to true (listed in the public index). See embed-key.ts for what "false" gates. */

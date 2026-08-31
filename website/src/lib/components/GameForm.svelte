@@ -4,8 +4,13 @@
 		DICTIONARY_SIZES,
 		DICTIONARY_LABELS,
 		DEFAULT_DICTIONARY_SIZE,
-		isDictionarySize
+		DEFAULT_HARD_MODE,
+		HARD_MODES,
+		HARD_MODE_LABELS,
+		isDictionarySize,
+		type HardModePolicy
 	} from '$lib/types';
+	import { possibleDailies } from '$lib/puzzle-counts';
 	import InfoTooltip from './InfoTooltip.svelte';
 
 	interface GraphStat {
@@ -29,7 +34,7 @@
 		rungsGiven?: number;
 		maxGuesses?: number;
 		boardCount?: number;
-		hardMode?: boolean;
+		hardMode?: HardModePolicy;
 		name?: string | null;
 		submitLabel: string;
 		randomMode?: boolean;
@@ -46,7 +51,7 @@
 		rungsGiven = 0,
 		maxGuesses = 6,
 		boardCount = 4,
-		hardMode = false,
+		hardMode = DEFAULT_HARD_MODE,
 		name = null,
 		submitLabel,
 		randomMode = $bindable(target === null),
@@ -84,11 +89,30 @@
 		quordle: true,
 		absurdle: true
 	};
+
+	// Where each type starts before anyone touches its settings. Wordle is
+	// the one that differs: five letters from the Expanded list is what the
+	// game means to most people who ask for it, where a ladder wants the
+	// shorter, denser end of the dictionary to have enough neighbours to
+	// walk through. Spelled out per mode rather than left to the shared
+	// defaults so switching type lands on that type's usual shape rather
+	// than on the last type's.
+	const MODE_DEFAULTS: Record<string, { length: number; dictionarySize: number }> = {
+		ladder: { length: 4, dictionarySize: DEFAULT_DICTIONARY_SIZE },
+		wordle: { length: 5, dictionarySize: 60 },
+		quordle: { length: 4, dictionarySize: DEFAULT_DICTIONARY_SIZE },
+		absurdle: { length: 4, dictionarySize: DEFAULT_DICTIONARY_SIZE }
+	};
 	let lastMode = untrack(() => mode);
 	$effect(() => {
 		if (mode === lastMode) return;
 		lastMode = mode;
 		randomMode = DEFAULT_RANDOM[mode] ?? true;
+		const defaults = MODE_DEFAULTS[mode];
+		if (defaults) {
+			lengthInput = defaults.length;
+			dictionarySize = defaults.dictionarySize;
+		}
 	});
 
 	// Only ladders care about connectivity: they walk one letter at a time,
@@ -135,7 +159,7 @@
 		possiblePuzzles?: number;
 	}
 	let targetReach = $state<TargetReach | null>(null);
-	const possiblePuzzles = $derived(targetReach?.possiblePuzzles ?? null);
+	const possibleLadders = $derived(targetReach?.possiblePuzzles ?? null);
 	let checkingTarget = $state(false);
 
 	$effect(() => {
@@ -175,6 +199,19 @@
 			clearTimeout(timer);
 			controller.abort();
 		};
+	});
+
+	// The guessing modes' answer to the ladder's "possible puzzles for this
+	// target" below: how many distinct dailies the game has in it before it
+	// starts over. Needs no request — it falls out of the dictionary's word
+	// count, which graphStats already carries. Absurdle is absent on
+	// purpose: it never picks a secret, so it has no dailies to count (see
+	// the absurdle note in the markup, which reports its word pool instead).
+	const possiblePuzzles = $derived.by(() => {
+		if (!connectivity) return null;
+		if (mode === 'wordle') return randomMode ? possibleDailies(connectivity.wordCount) : 1;
+		if (mode === 'quordle') return possibleDailies(connectivity.wordCount, boardCountInput);
+		return null;
 	});
 
 	const ladderWarning = $derived.by(() => {
@@ -444,14 +481,21 @@
 			</label>
 		{/if}
 
-		{#if mode === 'wordle' || mode === 'quordle'}
-			<label class="checkbox">
-				<input type="checkbox" name="hardMode" bind:checked={hardModeInput} />
-				Hard mode
-				<InfoTooltip label="What is hard mode?">
-					Every hint has to be reused: a green letter stays where it is, and a yellow one appears
-					somewhere in each later guess.
-				</InfoTooltip>
+		{#if mode === 'wordle'}
+			<label>
+				<span class="label-row">
+					Hard mode
+					<InfoTooltip label="What is hard mode?">
+						Every hint has to be reused: a green letter stays where it is, and a yellow one appears
+						somewhere in each later guess. <strong>Player's choice</strong> lets each player decide before
+						their first guess and holds them to it for the rest of that day.
+					</InfoTooltip>
+				</span>
+				<select name="hardMode" bind:value={hardModeInput}>
+					{#each HARD_MODES as policy (policy)}
+						<option value={policy}>{HARD_MODE_LABELS[policy]}</option>
+					{/each}
+				</select>
 			</label>
 		{/if}
 
@@ -460,17 +504,17 @@
 		{/if}
 
 		{#if mode === 'ladder' && !randomMode && targetReach?.known}
-			{#if possiblePuzzles === 0}
+			{#if possibleLadders === 0}
 				<p class="warning error">
 					{targetReach.anchorCount === 0
 						? `No word in this dictionary is one letter from "${targetInput.trim().toUpperCase()}", so no ladder can ever reach it.`
 						: `"${targetInput.trim().toUpperCase()}" can't support a ladder this long — the longest ending there is ${targetReach.longestLadder} words. Lower the minimum steps.`}
 				</p>
 			{:else}
-				<p class="reach" class:warning={possiblePuzzles !== null && possiblePuzzles < 20}>
-					<strong>{(possiblePuzzles ?? 0).toLocaleString()}</strong>
-					possible {possiblePuzzles === 1 ? 'puzzle' : 'puzzles'} for this target
-					{#if possiblePuzzles !== null && possiblePuzzles < 20}
+				<p class="reach" class:warning={possibleLadders !== null && possibleLadders < 20}>
+					<strong>{(possibleLadders ?? 0).toLocaleString()}</strong>
+					possible {possibleLadders === 1 ? 'puzzle' : 'puzzles'} for this target
+					{#if possibleLadders !== null && possibleLadders < 20}
 						— few enough that days will repeat quickly.
 					{/if}
 					{#if !targetReach.inDictionary}
@@ -485,6 +529,36 @@
 			{/if}
 		{:else if checkingTarget && mode === 'ladder' && !randomMode}
 			<p class="reach muted">Checking that target…</p>
+		{/if}
+
+		<!-- The guessing modes' counterpart to the ladder count above. Both
+		     answer the same question — how long before this game starts
+		     repeating itself — which is worth knowing while the dictionary
+		     and length are still being chosen. -->
+		{#if (mode === 'wordle' && randomMode) || mode === 'quordle'}
+			{#if possiblePuzzles === 0}
+				<p class="warning error">
+					Fewer {effectiveLength}-letter words in this dictionary than {boardCountInput} boards need —
+					use a larger dictionary or fewer boards.
+				</p>
+			{:else if possiblePuzzles !== null}
+				<p class="reach" class:warning={possiblePuzzles < 20}>
+					<strong>{possiblePuzzles.toLocaleString()}</strong>
+					possible {mode === 'quordle' ? 'board sets' : 'secrets'}
+					{#if possiblePuzzles < 20}
+						— few enough that days will repeat quickly.
+					{:else}
+						— one a day, in a fixed order, so none of them comes up twice until they've all been
+						used.
+					{/if}
+				</p>
+			{/if}
+		{:else if mode === 'absurdle' && connectivity}
+			<p class="reach">
+				<strong>{connectivity.wordCount.toLocaleString()}</strong>
+				words in play at the start. Absurdle never picks a secret — it narrows this pool as you guess
+				— so there's no daily puzzle to run out of.
+			</p>
 		{/if}
 	</section>
 
@@ -534,6 +608,12 @@
 					<div>
 						<dt>Boards</dt>
 						<dd>{boardCountInput}</dd>
+					</div>
+				{/if}
+				{#if mode === 'wordle'}
+					<div>
+						<dt>Hard mode</dt>
+						<dd>{HARD_MODE_LABELS[hardModeInput]}</dd>
 					</div>
 				{/if}
 			{/if}

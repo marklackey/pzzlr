@@ -21,19 +21,25 @@ export async function getAttempt(gameId: string, date: string, token: string) {
  * fresh one against `config` — which the new attempt keeps, so an edit to
  * the game part-way through doesn't change the puzzle underneath it. See
  * the config column in schema.ts.
+ *
+ * `hardMode` is only read when the attempt is actually created, which is
+ * what makes a player's choice on an 'optional' game stick for the rest of
+ * the day: after the first guess this is an existing row, and what the
+ * caller passes stops mattering. See the hardMode column in schema.ts.
  */
 export async function getOrCreateAttempt(
 	gameId: string,
 	date: string,
 	token: string,
-	config: AttemptConfig
+	config: AttemptConfig,
+	hardMode = false
 ) {
 	const existing = await getAttempt(gameId, date, token);
 	if (existing) return existing;
 
 	const [row] = await getDb()
 		.insert(puzzleAttempt)
-		.values({ gameId, date, token, guesses: [], solved: false, config })
+		.values({ gameId, date, token, guesses: [], solved: false, config, hardMode })
 		// A second request racing the first to create the same (game, date,
 		// token) row loses the insert and falls through to the select below
 		// instead of erroring — same "at most one true attempt" guarantee

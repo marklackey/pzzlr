@@ -2,7 +2,7 @@
 	import GameForm from '$lib/components/GameForm.svelte';
 	import InfoTooltip from '$lib/components/InfoTooltip.svelte';
 	import { page } from '$app/state';
-	import { DICTIONARY_LABELS, isDictionarySize } from '$lib/types';
+	import { DICTIONARY_LABELS, HARD_MODE_LABELS, isDictionarySize } from '$lib/types';
 
 	let { data, form } = $props();
 
@@ -190,6 +190,12 @@
 								<div>
 									<dt>Boards</dt>
 									<dd>{data.config.boardCount}</dd>
+								</div>
+							{/if}
+							{#if data.config.mode === 'wordle'}
+								<div>
+									<dt>Hard mode</dt>
+									<dd>{HARD_MODE_LABELS[data.config.hardMode]}</dd>
 								</div>
 							{/if}
 						{/if}

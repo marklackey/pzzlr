@@ -12,12 +12,19 @@ import { settingsForAttempt } from '$lib/server/attempt-continuity';
  * makes this the "show the answer after a loss" UI action it's meant to
  * be, not a shortcut around playing — see the comment on puzzleAttempt in
  * schema.ts for the (soft, anonymous-token) trust model this rides on.
+ *
+ * "Today" is whichever day the caller's board is on (`?date=`), so a board
+ * that ran out of guesses just after the rollover reveals the word it was
+ * actually played against rather than tomorrow's — see the widget's
+ * puzzleDay. It is also the attempt this reveal is gated on, so without it
+ * such a board would find no finished attempt at all and be refused.
  */
 export const GET: RequestHandler = async (event) => {
 	const { params, url } = event;
 	const loaded = await loadGameForMode(event, 'wordle', 'reveal');
 
-	const date = url.searchParams.get('date') ?? puzzleDate();
+	// An empty ?date= means the same as none: today's.
+	const date = url.searchParams.get('date') || puzzleDate();
 	const token = url.searchParams.get('token');
 	if (!token) {
 		throw error(400, 'expected ?token=<attempt token>');

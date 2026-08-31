@@ -24,11 +24,38 @@
 	let wordLength = $state(5);
 	let maxGuesses = $state(6);
 	let puzzleNumber = $state<number | null>(null);
+	/**
+	 * Which day's puzzle this board is (YYYY-MM-DD), fixed when it loaded.
+	 * Every guess and reveal is sent against this day rather than whatever
+	 * "today" has since become, so a board that was open when the puzzle
+	 * rolled over (US Eastern midnight — mid-evening in the west) plays out
+	 * as the puzzle the player started, instead of being scored against
+	 * tomorrow's secret. A reload is what moves them on.
+	 */
+	let puzzleDay = $state<string | null>(null);
 	let gameName = $state<string | null>(null);
 	let guesses = $state<LetterResult[][]>([]);
 	let currentGuess = $state('');
 	let message = $state('');
 	let revealedTarget = $state('');
+	/**
+	 * What the game says about hard mode: 'required', 'forbidden', or
+	 * 'optional' — the last meaning this board gets to choose. Defaults to
+	 * 'forbidden' so a widget talking to a server that doesn't send this
+	 * simply shows nothing.
+	 */
+	let hardModePolicy = $state<'forbidden' | 'optional' | 'required'>('forbidden');
+	/** Whether this board is playing under hard mode — the game's answer, or on an optional game this player's. */
+	let hardMode = $state(false);
+	/**
+	 * Whether a guess has already been sent for this board. Tracked because
+	 * the server settles hard mode when it creates the attempt, which a
+	 * rejected word does just as much as a real one — so the choice closes
+	 * on the first guess sent, not the first one scored.
+	 */
+	let boardStarted = $state(false);
+	/** Whether the hard-mode choice is still this player's to make. See hardModeFor server-side. */
+	const hardModeOpen = $derived(hardModePolicy === 'optional' && !boardStarted);
 
 	// Server-side scoring/reveal is keyed off this per-(browser, game)
 	// attempt token rather than a login — the widget is played anonymously
@@ -52,7 +79,8 @@
 	}
 	const token = attemptToken();
 
-	async function loadPuzzle() {
+	/** Loads `day`'s puzzle, defaulting to the `date` override, or to today when there's neither. */
+	async function loadPuzzle(day: string | undefined = date || undefined) {
 		if (!game) {
 			message = 'missing required "game" attribute (a stored game config id)';
 			status = 'error';
@@ -63,7 +91,7 @@
 		message = '';
 		try {
 			const params = new URLSearchParams({ token });
-			if (date) params.set('date', date);
+			if (day) params.set('date', day);
 			const res = await fetch(`${apibase}/api/games/${game}/wordle/daily?${params}`, {
 				headers: authHeaders(apikey)
 			});
@@ -73,11 +101,22 @@
 			wordLength = data.length;
 			maxGuesses = data.maxGuesses;
 			puzzleNumber = data.puzzleNumber ?? null;
+			puzzleDay = data.date ?? null;
 			gameName = data.name ?? null;
 			currentGuess = '';
 			revealedTarget = '';
 
-			const resumed = data.resumed as { guesses: LetterResult[][]; solved: boolean } | null;
+			hardModePolicy = data.hardMode ?? 'forbidden';
+			const resumed = data.resumed as {
+				guesses: LetterResult[][];
+				solved: boolean;
+				hardMode?: boolean;
+			} | null;
+			// An attempt already under way has settled this; a fresh board
+			// takes the game's answer, which on an optional game is "off until
+			// you say otherwise".
+			boardStarted = resumed !== null;
+			hardMode = resumed ? (resumed.hardMode ?? false) : hardModePolicy === 'required';
 			guesses = resumed?.guesses ?? [];
 			if (resumed?.solved) {
 				status = 'won';
@@ -96,7 +135,10 @@
 	async function reveal() {
 		try {
 			const params = new URLSearchParams({ token });
-			if (date) params.set('date', date);
+			// This board's day, not today's — the secret to show is the one it
+			// was played against. See puzzleDay.
+			const day = puzzleDay ?? (date || undefined);
+			if (day) params.set('date', day);
 			const res = await fetch(`${apibase}/api/games/${game}/wordle/reveal?${params}`, {
 				headers: authHeaders(apikey)
 			});
@@ -113,14 +155,31 @@
 		const res = await fetch(`${apibase}/api/games/${game}/wordle/guess`, {
 			method: 'POST',
 			headers: { 'content-type': 'application/json', ...authHeaders(apikey) },
-			body: JSON.stringify({ guess, token, date: date || undefined })
+			// The day is this board's own (see puzzleDay), not today's — the
+			// guess is scored against the puzzle being played. `rows` goes
+			// along purely so the server can refuse a guess from a board that
+			// isn't this attempt's any more; it never places one. See
+			// boardIsCurrent server-side.
+			body: JSON.stringify({
+				guess,
+				token,
+				rows: guesses.length,
+				// Only read by the server if this guess is the one that starts
+				// the attempt; from then on the attempt's own answer governs,
+				// which is what the lock below mirrors.
+				hard: hardMode,
+				date: puzzleDay ?? (date || undefined)
+			})
 		});
+		boardStarted = true;
 
 		if (res.status === 409) {
-			// Our local state disagrees with the server's (e.g. this attempt
-			// already finished in another tab) — resync from the source of
-			// truth instead of pressing on with a stale guess.
-			await loadPuzzle();
+			// Our local state disagrees with the server's about this attempt —
+			// it finished in another tab, or another tab has made guesses this
+			// board hasn't seen. Resync from the source of truth instead of
+			// pressing on with a stale board, staying on the same day: this is
+			// the puzzle being played, not necessarily today's.
+			await loadPuzzle(puzzleDay ?? undefined);
 			return;
 		}
 		const result = await res.json();
@@ -220,6 +279,15 @@
 					<span class="puzzle-number">#{puzzleNumber}</span>
 					<span class="length-hint">{wordLength} letters</span>
 				</div>
+			{/if}
+
+			{#if hardModeOpen}
+				<label class="hard-mode">
+					<input type="checkbox" bind:checked={hardMode} />
+					Hard mode — every hint has to be reused. Locks in when you guess.
+				</label>
+			{:else if hardMode}
+				<p class="hard-mode on">Hard mode: every hint has to be reused.</p>
 			{/if}
 
 			<div class="board" bind:this={boardEl}>
@@ -357,6 +425,19 @@
 		font-size: 0.85rem;
 		color: var(--ink-muted);
 		margin-bottom: 1rem;
+	}
+	/* Reads as a note about the rules rather than a control to hunt for:
+	   it matters before the first guess and is just a reminder after. */
+	.hard-mode {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		font-size: 0.8rem;
+		color: var(--ink-muted);
+		margin: -0.5rem 0 0.8rem;
+	}
+	.hard-mode.on {
+		font-weight: 700;
 	}
 	.board {
 		display: flex;

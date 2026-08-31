@@ -13,6 +13,15 @@ import { loadGameForMode } from '$lib/server/route-helpers';
  * recomputed fresh on every call instead of being read from storage, and
  * the client is trusted to track its own guesses-used count (see the
  * quordle daily route's doc comment for why that tradeoff is fine here).
+ *
+ * Which day's board set that is comes from the request (`date`), not from
+ * the clock: a board that was on screen when the puzzle rolled over goes
+ * on being that day's board set until it's done, rather than having
+ * tomorrow's secrets swapped in underneath it — see the widget's
+ * puzzleDay, and the same "finish what you started" rule
+ * attempt-continuity applies to a game's settings. With no attempt record
+ * to fall out of step with, the day is the whole of it here: there's no
+ * stored guess count for a stale board to disagree with.
  */
 export const POST: RequestHandler = async (event) => {
 	const { params } = event;
@@ -20,7 +29,10 @@ export const POST: RequestHandler = async (event) => {
 
 	const body = await event.request.json().catch(() => null);
 	const guess = typeof body?.guess === 'string' ? body.guess.toLowerCase() : null;
-	const date = typeof body?.date === 'string' ? body.date : puzzleDate();
+	// Today's is the default, for a caller that doesn't say which board it's
+	// on — an older embedded copy of the widget, or one whose `date` prop is
+	// unset and so sends ''.
+	const date = typeof body?.date === 'string' && body.date ? body.date : puzzleDate();
 	if (!guess) {
 		throw error(400, 'expected { guess: string, date?: string }');
 	}

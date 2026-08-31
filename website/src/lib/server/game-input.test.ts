@@ -98,3 +98,39 @@ describe('parseGameInput name', () => {
 		);
 	});
 });
+
+describe('parseGameInput hardMode', () => {
+	const base = { name: 'Test game', length: 5, target: null };
+
+	it('defaults to forbidden, so a game only offers hard mode on purpose', () => {
+		expect(parseGameInput({ ...base, mode: 'wordle' }).hardMode).toBe('forbidden');
+	});
+
+	it('keeps whichever policy a wordle game asked for', () => {
+		expect(parseGameInput({ ...base, mode: 'wordle', hardMode: 'optional' }).hardMode).toBe(
+			'optional'
+		);
+		expect(parseGameInput({ ...base, mode: 'wordle', hardMode: 'required' }).hardMode).toBe(
+			'required'
+		);
+	});
+
+	// The old boolean, or anything else off the wire, isn't a policy.
+	it("falls back to forbidden for a value that isn't one of the three", () => {
+		expect(parseGameInput({ ...base, mode: 'wordle', hardMode: true }).hardMode).toBe('forbidden');
+		expect(parseGameInput({ ...base, mode: 'wordle', hardMode: 'sometimes' }).hardMode).toBe(
+			'forbidden'
+		);
+	});
+
+	// Hard mode is wordle-only — see HardModePolicy in $lib/types for why
+	// quordle in particular can't have it.
+	it('ignores it for every other mode', () => {
+		expect(parseGameInput({ ...base, mode: 'quordle', hardMode: 'required' }).hardMode).toBe(
+			'forbidden'
+		);
+		expect(parseGameInput({ ...base, mode: 'ladder', hardMode: 'required' }).hardMode).toBe(
+			'forbidden'
+		);
+	});
+});

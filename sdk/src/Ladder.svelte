@@ -25,6 +25,15 @@
 	let puzzleLength = $state(4);
 	let minStepsResolved = $state(0);
 	let puzzleNumber = $state<number | null>(null);
+	/**
+	 * Which day's ladder this board is (YYYY-MM-DD), fixed when it loaded.
+	 * Every guess is sent against this day rather than whatever "today" has
+	 * since become, so a board that was open when the puzzle rolled over
+	 * (US Eastern midnight — mid-evening in the west) plays out as the
+	 * ladder the player started, instead of having the new day's puzzle
+	 * swapped in underneath them. A reload is what moves them on.
+	 */
+	let puzzleDay = $state<string | null>(null);
 	let gameName = $state<string | null>(null);
 	let rows = $state<string[]>([]);
 	/** rows[0..givenCount) came free (start + any revealed rungs), not from a guess. */
@@ -53,7 +62,8 @@
 	}
 	const token = attemptToken();
 
-	async function loadPuzzle() {
+	/** Loads `day`'s ladder, defaulting to the `date` override, or to today when there's neither. */
+	async function loadPuzzle(day: string | undefined = date || undefined) {
 		if (!game) {
 			message = 'missing required "game" attribute (a stored game config id)';
 			status = 'error';
@@ -64,7 +74,7 @@
 		message = '';
 		try {
 			const params = new URLSearchParams({ token });
-			if (date) params.set('date', date);
+			if (day) params.set('date', day);
 			const res = await fetch(`${apibase}/api/games/${game}/daily?${params}`, {
 				headers: authHeaders(apikey)
 			});
@@ -78,6 +88,7 @@
 			puzzleLength = data.length;
 			minStepsResolved = data.minSteps;
 			puzzleNumber = data.puzzleNumber ?? null;
+			puzzleDay = data.date ?? null;
 			gameName = data.name ?? null;
 			givenCount = 1 + revealedRungs.length;
 			const resumed = data.resumed as { guesses: string[]; solved: boolean } | null;
@@ -99,14 +110,21 @@
 		const res = await fetch(`${apibase}/api/games/${game}/guess`, {
 			method: 'POST',
 			headers: { 'content-type': 'application/json', ...authHeaders(apikey) },
-			body: JSON.stringify({ guess, token, date: date || undefined })
+			// The day is this board's own (see puzzleDay), not today's — the
+			// server takes the step on the ladder being played. `current`
+			// goes along as `from` purely so it can refuse a guess aimed at a
+			// board it isn't on any more; it never chooses the word being
+			// stepped from. See boardIsCurrent server-side.
+			body: JSON.stringify({ guess, token, from: current, date: puzzleDay ?? (date || undefined) })
 		});
 
 		if (res.status === 409) {
-			// Our local state disagrees with the server's (e.g. today's ladder
-			// was finished in another tab) — resync from the source of truth
-			// rather than pressing on with a stale board.
-			await loadPuzzle();
+			// Our local state disagrees with the server's about this ladder —
+			// it was finished in another tab, or another tab has taken steps
+			// this board hasn't seen. Resync from the source of truth rather
+			// than pressing on with a stale board, staying on the same day:
+			// this is the ladder being played, not necessarily today's.
+			await loadPuzzle(puzzleDay ?? undefined);
 			return;
 		}
 		const result = await res.json();
