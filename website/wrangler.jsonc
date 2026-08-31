@@ -8,7 +8,11 @@
 	// below is the canonical one (and with the Apple Services ID's
 	// Domain/Return URL).
 	"vars": {
-		"ORIGIN": "https://pzzlr.app"
+		"ORIGIN": "https://pzzlr.app",
+		// Also not a secret. Has to be on the sending domain onboarded in the
+		// dashboard (Email Service → sending domains), or the binding below
+		// refuses the message. See $lib/server/email.ts.
+		"MAIL_FROM": "no-reply@pzzlr.app"
 	},
 	// pzzlr.app's zone lives on this same Cloudflare account (nameservers
 	// pointed here from DNSimple) — this provisions the cert and routes it
@@ -20,6 +24,11 @@
 		"binding": "ASSETS",
 		"directory": ".svelte-kit/cloudflare"
 	},
+	// Cloudflare Email Service. Sends to any recipient once pzzlr.app is
+	// onboarded as a sending domain; before that it only reaches destination
+	// addresses verified in the dashboard, which is not enough for sign-up
+	// verification — see the setup note in src/lib/server/email.ts.
+	"send_email": [{ "name": "EMAIL" }],
 	"d1_databases": [
 		{
 			"binding": "DB",

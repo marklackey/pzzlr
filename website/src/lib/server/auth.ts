@@ -5,6 +5,7 @@ import { sveltekitCookies } from 'better-auth/svelte-kit';
 import { apiKey } from '@better-auth/api-key';
 import { getRequestEvent } from '$app/server';
 import { getDb } from '$lib/server/db';
+import { emailChangeEmail, sendEmail, verificationEmail } from '$lib/server/email';
 import { importPKCS8, SignJWT } from 'jose';
 
 // Apple doesn't take a static client secret — it takes a JWT you sign
@@ -51,7 +52,44 @@ async function buildAuth() {
 		database: drizzleAdapter(getDb(), { provider: 'sqlite' }),
 		// Works with zero setup (no provider app / API keys needed), unlike the
 		// social providers below — the fallback sign-in that's always available.
-		emailAndPassword: { enabled: true },
+		emailAndPassword: {
+			enabled: true,
+			// No session until the address is confirmed. An address nobody has
+			// proved they can read is worth very little — it can't be used to
+			// recover the account, and it lets one person mint accounts under
+			// other people's addresses. Only affects this sign-in method:
+			// Google and Apple have already done this check, and better-auth
+			// records their users as verified on the way in.
+			requireEmailVerification: true
+		},
+		emailVerification: {
+			sendOnSignUp: true,
+			// A signed-up-but-never-verified account is otherwise a dead end:
+			// the link expires, and signing in is exactly when someone notices
+			// they never clicked it. This re-sends on that attempt, so the way
+			// out is to try again rather than to guess.
+			sendOnSignIn: true,
+			// Clicking the link is proof enough — making them then type the
+			// password they just set is friction with nothing behind it.
+			autoSignInAfterVerification: true,
+			sendVerificationEmail: async ({ user, url }) => {
+				await sendEmail({ to: user.email, ...verificationEmail(url) });
+			}
+		},
+		user: {
+			changeEmail: {
+				enabled: true,
+				// Confirmation goes to the address currently on the account,
+				// not the new one — better-auth's flow, and the right way
+				// round: the person who can read the old address is the one
+				// who has to agree to lose it, which is what stops someone
+				// with a borrowed session from walking off with the account.
+				// The new address only lands once that link is used.
+				sendChangeEmailConfirmation: async ({ user, newEmail, url }) => {
+					await sendEmail({ to: user.email, ...emailChangeEmail(url, newEmail) });
+				}
+			}
+		},
 		socialProviders: await configuredProviders(),
 		// Apple posts the sign-in callback back to your redirect URI from its own
 		// origin (response_mode=form_post), so that origin has to be trusted
