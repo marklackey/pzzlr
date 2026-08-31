@@ -38,18 +38,27 @@
 		<div class="nav-right">
 			<!-- Primary destinations stay on the bar where there's room for
 			     them; below that they live in the menu like everything else.
-			     "My games" shows signed out too: /games explains that making
-			     your own needs an account, which introduces the feature better
-			     than hiding it until you already have one. -->
+			     "My games" is only a place once there's something in it, so a
+			     signed-out visitor gets Create instead — see /create, which
+			     makes the case for an account rather than demanding one. -->
 			<div class="nav-links">
 				<a href={resolve('/explore')}>Explore</a>
-				<a href={resolve('/games')}>My games</a>
+				{#if data.user}
+					<a href={resolve('/games')}>My games</a>
+				{/if}
 			</div>
+
+			<!-- A button rather than a link, and never dropped into the menu at
+			     narrow widths: making a game is the one thing this site is for,
+			     so it stays the most reachable thing on the bar. That's also
+			     why the sign-in button beside it is the quieter of the two —
+			     signing in is how you get to create, not the point itself. -->
+			<a class="btn btn-primary btn-sm" href={resolve('/create')} onclick={closeMenu}>Create</a>
 
 			{#if data.user}
 				<button type="button" class="btn btn-secondary btn-sm" onclick={signOut}>Sign out</button>
 			{:else}
-				<a class="btn btn-primary btn-sm" href={resolve('/login')} onclick={closeMenu}>Sign in</a>
+				<a class="btn btn-secondary btn-sm" href={resolve('/login')} onclick={closeMenu}>Sign in</a>
 			{/if}
 
 			<button
@@ -76,7 +85,10 @@
 			     cover the board it's opened from. -->
 			<div class="menu" id="site-menu">
 				<a class="menu-link narrow-only" href={resolve('/explore')} onclick={closeMenu}>Explore</a>
-				<a class="menu-link narrow-only" href={resolve('/games')} onclick={closeMenu}>My games</a>
+				{#if data.user}
+					<a class="menu-link narrow-only" href={resolve('/games')} onclick={closeMenu}>My games</a>
+					<a class="menu-link" href={resolve('/account')} onclick={closeMenu}>Account</a>
+				{/if}
 				<a class="menu-link" href={resolve('/support')} onclick={closeMenu}>Support</a>
 				<a class="menu-link" href={resolve('/privacy')} onclick={closeMenu}>Privacy</a>
 				<a class="menu-link" href={resolve('/terms')} onclick={closeMenu}>Terms</a>
