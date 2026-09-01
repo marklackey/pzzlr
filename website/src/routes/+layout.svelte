@@ -2,11 +2,22 @@
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.svg';
 	import { authClient } from '$lib/auth-client';
+	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
+	import { theme } from '$lib/theme.svelte';
 	import { resolve } from '$app/paths';
 
 	let { children, data } = $props();
 
 	let menuOpen = $state(false);
+
+	// The pre-paint script in app.html has already applied whatever was
+	// stored (see app.html); this catches the app up with it and follows the
+	// device from here on, which is what lets theme.resolved be right for the
+	// widgets on any page.
+	$effect(() => {
+		theme.init();
+		return theme.watchSystem();
+	});
 
 	async function signOut() {
 		await authClient.signOut();
@@ -37,24 +48,25 @@
 
 		<div class="nav-right">
 			<!-- Primary destinations stay on the bar where there's room for
-			     them; below that they live in the menu like everything else.
-			     "My games" is only a place once there's something in it, so a
-			     signed-out visitor gets Create instead — see /create, which
-			     makes the case for an account rather than demanding one. -->
+			     them; below that they live in the menu like everything else. -->
 			<div class="nav-links">
 				<a href={resolve('/explore')}>Explore</a>
 				{#if data.user}
 					<a href={resolve('/favorites')}>Favorites</a>
-					<a href={resolve('/games')}>My games</a>
 				{/if}
 			</div>
 
-			<!-- A button rather than a link, and never dropped into the menu at
-			     narrow widths: making a game is the one thing this site is for,
-			     so it stays the most reachable thing on the bar. That's also
-			     why the sign-in button beside it is the quieter of the two —
-			     signing in is how you get to create, not the point itself. -->
-			<a class="btn btn-primary btn-sm" href={resolve('/create')} onclick={closeMenu}>Create</a>
+			<!-- The one loud thing on the bar, and never dropped into the menu
+			     at narrow widths — but what it points at depends on who's
+			     looking. Signed out it's Create, the invitation: see /create,
+			     which makes the case for an account rather than demanding one.
+			     Signed in it's the shelf they came back for, and making another
+			     game is a button away once they're on it (see /games). -->
+			{#if data.user}
+				<a class="btn btn-primary btn-sm" href={resolve('/games')} onclick={closeMenu}>My games</a>
+			{:else}
+				<a class="btn btn-primary btn-sm" href={resolve('/create')} onclick={closeMenu}>Create</a>
+			{/if}
 
 			{#if data.user}
 				<button type="button" class="btn btn-secondary btn-sm" onclick={signOut}>Sign out</button>
@@ -90,12 +102,19 @@
 					<a class="menu-link narrow-only" href={resolve('/favorites')} onclick={closeMenu}>
 						Favorites
 					</a>
-					<a class="menu-link narrow-only" href={resolve('/games')} onclick={closeMenu}>My games</a>
+					<!-- Not narrow-only: the bar shows these players My games
+					     instead, so this is where creating another one lives at
+					     every width. -->
+					<a class="menu-link" href={resolve('/create')} onclick={closeMenu}>Create a game</a>
 					<a class="menu-link" href={resolve('/account')} onclick={closeMenu}>Account</a>
 				{/if}
 				<a class="menu-link" href={resolve('/support')} onclick={closeMenu}>Support</a>
 				<a class="menu-link" href={resolve('/privacy')} onclick={closeMenu}>Privacy</a>
 				<a class="menu-link" href={resolve('/terms')} onclick={closeMenu}>Terms</a>
+				<!-- Below the destinations, above the fine print: a setting, not
+				     a place to go. -->
+				<div class="menu-divider"></div>
+				<ThemeToggle />
 				<span class="menu-copyright">© {new Date().getFullYear()} Pzzlr</span>
 			</div>
 		{/if}
@@ -173,6 +192,11 @@
 		background: var(--color-bg);
 		color: var(--color-primary);
 		text-decoration: none;
+	}
+	.menu-divider {
+		height: 1px;
+		margin: var(--space-2) var(--space-4);
+		background: var(--color-border);
 	}
 	.menu-copyright {
 		margin-top: var(--space-2);

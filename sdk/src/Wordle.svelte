@@ -764,4 +764,38 @@
 			margin: -0.3rem 0 0.5rem;
 		}
 	}
+	/* Dark, in the two ways a widget can be asked for it. The website sets
+	   `theme` from the reader's own choice (see ThemeToggle), which has to
+	   win even when it disagrees with the device — that's the attribute
+	   rule. An embed on someone else's site sets nothing, and follows the
+	   device — that's the media query, which steps aside the moment a host
+	   asks for light outright. */
+	@media (prefers-color-scheme: dark) {
+		:host(:not([theme='light'])) .wordle {
+			--accent: #63c49c;
+			--accent-hover: #7ad4af;
+			--hit: #3f8a6c;
+			--present: #a8802f;
+			--miss: #4a4553;
+			--ink: #f0ece5;
+			--ink-muted: #a49eae;
+			--line: #322d3a;
+			--key-bg: #322d3a;
+			--key-bg-hover: #3f3949;
+			--bg: #201d26;
+		}
+	}
+	:host([theme='dark']) .wordle {
+		--accent: #63c49c;
+		--accent-hover: #7ad4af;
+		--hit: #3f8a6c;
+		--present: #a8802f;
+		--miss: #4a4553;
+		--ink: #f0ece5;
+		--ink-muted: #a49eae;
+		--line: #322d3a;
+		--key-bg: #322d3a;
+		--key-bg-hover: #3f3949;
+		--bg: #201d26;
+	}
 </style>

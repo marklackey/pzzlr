@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import ExploreGames from '$lib/components/ExploreGames.svelte';
+	import { theme } from '$lib/theme.svelte';
 
 	let { data } = $props();
 
@@ -48,13 +49,13 @@
 
 			<div class="board-card" class:multi={data.game.mode === 'quordle'}>
 				{#if data.game.mode === 'wordle'}
-					<pzzlr-wordle apibase="" game={data.game.id}></pzzlr-wordle>
+					<pzzlr-wordle apibase="" game={data.game.id} theme={theme.resolved}></pzzlr-wordle>
 				{:else if data.game.mode === 'quordle'}
-					<pzzlr-quordle apibase="" game={data.game.id}></pzzlr-quordle>
+					<pzzlr-quordle apibase="" game={data.game.id} theme={theme.resolved}></pzzlr-quordle>
 				{:else if data.game.mode === 'absurdle'}
-					<pzzlr-absurdle apibase="" game={data.game.id}></pzzlr-absurdle>
+					<pzzlr-absurdle apibase="" game={data.game.id} theme={theme.resolved}></pzzlr-absurdle>
 				{:else}
-					<pzzlr-ladder apibase="" game={data.game.id}></pzzlr-ladder>
+					<pzzlr-ladder apibase="" game={data.game.id} theme={theme.resolved}></pzzlr-ladder>
 				{/if}
 			</div>
 		{:else}

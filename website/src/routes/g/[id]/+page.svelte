@@ -3,6 +3,7 @@
 	import InfoTooltip from '$lib/components/InfoTooltip.svelte';
 	import FavoriteButton from '$lib/components/FavoriteButton.svelte';
 	import { page } from '$app/state';
+	import { theme } from '$lib/theme.svelte';
 	import { resolve } from '$app/paths';
 	import { DICTIONARY_LABELS, HARD_MODE_LABELS, MODE_LABELS, isDictionarySize } from '$lib/types';
 
@@ -189,6 +190,7 @@
 						apibase=""
 						game={data.config.id}
 						date={day}
+						theme={theme.resolved}
 						revealed={revealedAttr}
 						apikey={data.config.embedKey ?? undefined}
 					></pzzlr-wordle>
@@ -197,6 +199,7 @@
 						apibase=""
 						game={data.config.id}
 						date={day}
+						theme={theme.resolved}
 						revealed={revealedAttr}
 						apikey={data.config.embedKey ?? undefined}
 					></pzzlr-quordle>
@@ -204,6 +207,7 @@
 					<pzzlr-absurdle
 						apibase=""
 						game={data.config.id}
+						theme={theme.resolved}
 						apikey={data.config.embedKey ?? undefined}
 					></pzzlr-absurdle>
 				{:else}
@@ -211,6 +215,7 @@
 						apibase=""
 						game={data.config.id}
 						date={day}
+						theme={theme.resolved}
 						revealed={revealedAttr}
 						apikey={data.config.embedKey ?? undefined}
 					></pzzlr-ladder>

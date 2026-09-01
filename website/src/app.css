@@ -64,6 +64,89 @@
 	--nav-h: 3.25rem;
 }
 
+/* Dark. Written once as a set of token overrides and applied two ways: to
+   anyone whose device asks for dark and hasn't overridden it here, and to
+   anyone who has chosen dark outright. Both have to exist — the media query
+   alone can't honour someone who wants light on a dark machine, and the
+   attribute alone can't honour someone who never opens the menu. See
+   $lib/theme.svelte.ts. */
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme='light']) {
+		--color-bg: #17151c;
+		--color-surface: #201d26;
+		--color-sunk: #2a2631;
+		--color-text: #f0ece5;
+		--color-text-muted: #a49eae;
+		--color-border: #322d3a;
+		--color-border-strong: #4a4356;
+
+		--color-primary: #9b8cf0;
+		--color-primary-hover: #b0a3f5;
+		--color-primary-soft: #2a2447;
+		--color-primary-contrast: #17151c;
+
+		--color-accent: #e08c52;
+		--color-accent-soft: #33251c;
+
+		--color-ladder: #8b7ae0;
+		--color-wordle: #4fa583;
+		--color-quordle: #4f9ac0;
+		--color-absurdle: #d18163;
+
+		--color-success: #4fa583;
+		--color-success-bg: #1f3a30;
+		--color-error: #e08379;
+		--color-error-hover: #ea968d;
+		--color-error-bg: #3a2422;
+
+		--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+		--shadow-md: 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+		--shadow-lg: 0 20px 48px -24px rgba(0, 0, 0, 0.7);
+	}
+}
+
+:root[data-theme='dark'] {
+	--color-bg: #17151c;
+	--color-surface: #201d26;
+	--color-sunk: #2a2631;
+	--color-text: #f0ece5;
+	--color-text-muted: #a49eae;
+	--color-border: #322d3a;
+	--color-border-strong: #4a4356;
+
+	--color-primary: #9b8cf0;
+	--color-primary-hover: #b0a3f5;
+	--color-primary-soft: #2a2447;
+	--color-primary-contrast: #17151c;
+
+	--color-accent: #e08c52;
+	--color-accent-soft: #33251c;
+
+	--color-ladder: #8b7ae0;
+	--color-wordle: #4fa583;
+	--color-quordle: #4f9ac0;
+	--color-absurdle: #d18163;
+
+	--color-success: #4fa583;
+	--color-success-bg: #1f3a30;
+	--color-error: #e08379;
+	--color-error-hover: #ea968d;
+	--color-error-bg: #3a2422;
+
+	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+	--shadow-md: 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+	--shadow-lg: 0 20px 48px -24px rgba(0, 0, 0, 0.7);
+}
+
+/* Both themes' form controls, scrollbars and the like — cheaper and more
+   consistent than restyling each one. */
+:root[data-theme='dark'] {
+	color-scheme: dark;
+}
+:root[data-theme='light'] {
+	color-scheme: light;
+}
+
 * {
 	box-sizing: border-box;
 }
