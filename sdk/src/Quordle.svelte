@@ -61,8 +61,6 @@
 	let message = $state('');
 
 	const allSolved = $derived(boardSolvedAt.length > 0 && boardSolvedAt.every((v) => v !== null));
-	/** What each board's word display shows: a revealed day's answer, else whatever a finished attempt fetched. */
-	const shownTargets = $derived(revealedWords.length > 0 ? revealedWords : revealedTargets);
 
 	// Server-side scoring/reveal is keyed off this per-(browser, game)
 	// attempt token rather than a login — the widget is played anonymously
@@ -328,6 +326,17 @@
 											<div class="tile filled {s}">{letter.toUpperCase()}</div>
 										{/each}
 									</div>
+								{:else if rowIndex === boardResults[i].length && revealedWords[i]}
+									<!-- The day's answer for this board, in the row a guess
+									     would have gone in and scored the way a solving guess
+									     scores. -->
+									<div class="row" bind:this={rowEls[i][rowIndex]}>
+										{#each Array.from({ length: wordLength }) as _, li (li)}
+											<div class="tile filled correct">
+												{revealedWords[i][li]?.toUpperCase() ?? ''}
+											</div>
+										{/each}
+									</div>
 								{:else if rowIndex === guesses.length && status === 'playing'}
 									<div class="row" bind:this={rowEls[i][rowIndex]}>
 										{#each Array.from({ length: wordLength }) as _, li (li)}
@@ -345,8 +354,8 @@
 						</div>
 						{#if boardSolvedAt[i] !== null}
 							<p class="board-status solved">guess {boardSolvedAt[i]}</p>
-						{:else if shownTargets[i]}
-							<p class="board-status lost">{shownTargets[i].toUpperCase()}</p>
+						{:else if status === 'finished' && revealedTargets[i]}
+							<p class="board-status lost">{revealedTargets[i].toUpperCase()}</p>
 						{/if}
 					</div>
 				{/each}

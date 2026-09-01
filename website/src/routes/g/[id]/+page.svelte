@@ -190,7 +190,7 @@
 						apibase=""
 						game={data.config.id}
 						date={day}
-						theme={theme.resolved}
+						theme={theme.attr}
 						revealed={revealedAttr}
 						apikey={data.config.embedKey ?? undefined}
 					></pzzlr-wordle>
@@ -199,7 +199,7 @@
 						apibase=""
 						game={data.config.id}
 						date={day}
-						theme={theme.resolved}
+						theme={theme.attr}
 						revealed={revealedAttr}
 						apikey={data.config.embedKey ?? undefined}
 					></pzzlr-quordle>
@@ -207,7 +207,7 @@
 					<pzzlr-absurdle
 						apibase=""
 						game={data.config.id}
-						theme={theme.resolved}
+						theme={theme.attr}
 						apikey={data.config.embedKey ?? undefined}
 					></pzzlr-absurdle>
 				{:else}
@@ -215,7 +215,7 @@
 						apibase=""
 						game={data.config.id}
 						date={day}
-						theme={theme.resolved}
+						theme={theme.attr}
 						revealed={revealedAttr}
 						apikey={data.config.embedKey ?? undefined}
 					></pzzlr-ladder>

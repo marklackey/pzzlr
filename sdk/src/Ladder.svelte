@@ -256,7 +256,12 @@
 						{#each revealedWords as word, wordIndex (wordIndex)}
 							<div class="row">
 								{#each Array.from({ length: puzzleLength }) as _, i (i)}
-									<div class="tile answer-tile">{word[i]?.toUpperCase() ?? ''}</div>
+									<!-- The same tile a played rung uses, matched letters and
+									     all: a revealed ladder should look like one somebody
+									     climbed, not like a sketch of one. -->
+									<div class="tile" class:matched={matchesTarget(word, i)}>
+										{word[i]?.toUpperCase() ?? ''}
+									</div>
 								{/each}
 							</div>
 						{/each}

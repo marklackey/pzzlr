@@ -24,19 +24,22 @@ export function isTheme(value: unknown): value is Theme {
  */
 class ThemeSetting {
 	current = $state<Theme>('system');
-	/** What the device is asking for, kept current so 'system' can resolve without asking again. */
-	systemDark = $state(false);
 
 	/**
-	 * The scheme actually in force. The stylesheet doesn't need this — it
-	 * handles 'system' with a media query — but the widgets do: they live in
-	 * shadow roots and are told which scheme to paint (see their `theme`
-	 * attribute), and "whatever the device says" isn't something an
-	 * attribute can carry.
+	 * What to put on a widget's `theme` attribute — and for 'system',
+	 * nothing at all.
+	 *
+	 * The widgets live in shadow roots and can't read the page's theme, so an
+	 * explicit choice has to be handed to them. But resolving 'system' to a
+	 * scheme here would mean answering "what does this device prefer?" on the
+	 * server, where there is no device: every server-rendered page would say
+	 * light, and a dark-mode reader would watch the board flash white before
+	 * hydration corrected it. Sending nothing leaves the widget's own
+	 * prefers-color-scheme rule in charge, which is right from the first
+	 * paint.
 	 */
-	get resolved(): 'light' | 'dark' {
-		if (this.current === 'system') return this.systemDark ? 'dark' : 'light';
-		return this.current;
+	get attr(): 'light' | 'dark' | undefined {
+		return this.current === 'system' ? undefined : this.current;
 	}
 
 	/** Reads what the pre-paint script already applied, so the control starts on the right option. */
@@ -47,15 +50,6 @@ class ThemeSetting {
 		} catch {
 			// Storage blocked (private browsing) — 'system' is a fine answer.
 		}
-	}
-
-	/** Follows the device's own setting while the app is open. Returns its own teardown. */
-	watchSystem(): () => void {
-		const query = window.matchMedia('(prefers-color-scheme: dark)');
-		this.systemDark = query.matches;
-		const onChange = (event: MediaQueryListEvent) => (this.systemDark = event.matches);
-		query.addEventListener('change', onChange);
-		return () => query.removeEventListener('change', onChange);
 	}
 
 	set(theme: Theme) {

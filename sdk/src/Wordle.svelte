@@ -352,6 +352,19 @@
 						{/if}
 					</div>
 				{/each}
+
+				{#if revealedWords.length > 0}
+					<div class="answer">
+						<span class="answer-label">Answer</span>
+						<div class="row">
+							{#each Array.from({ length: wordLength }) as _, i (i)}
+								<!-- Every letter correct — what the board looks like when
+								     someone guesses it. -->
+								<div class="tile filled correct">{revealedWords[0][i]?.toUpperCase() ?? ''}</div>
+							{/each}
+						</div>
+					</div>
+				{/if}
 			</div>
 
 			{#if status === 'won'}
@@ -602,9 +615,10 @@
 		border-color: var(--miss);
 		color: white;
 	}
-	/* The answer to a day that's already over: on the board, in the same
-	   grid as everything else, but dashed and muted so it never reads as a
-	   row someone actually played. */
+	/* The answer to a day that's already over, drawn as the board would have
+	   drawn it if somebody had played it. Only the small label above says
+	   otherwise — the point is to see the solution the way you'd have seen
+	   your own. */
 	.answer {
 		display: flex;
 		flex-direction: column;
@@ -616,12 +630,6 @@
 		font-weight: 700;
 		text-transform: uppercase;
 		letter-spacing: 0.06em;
-		color: var(--ink-muted);
-	}
-	.tile.answer-tile {
-		border-style: dashed;
-		border-color: var(--ink-muted);
-		background: none;
 		color: var(--ink-muted);
 	}
 	.keyboard {

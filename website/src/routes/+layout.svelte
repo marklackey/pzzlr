@@ -11,12 +11,10 @@
 	let menuOpen = $state(false);
 
 	// The pre-paint script in app.html has already applied whatever was
-	// stored (see app.html); this catches the app up with it and follows the
-	// device from here on, which is what lets theme.resolved be right for the
-	// widgets on any page.
+	// stored; this catches the control up with it. Nothing here has to track
+	// the device — the stylesheet and the widgets each follow it themselves.
 	$effect(() => {
 		theme.init();
-		return theme.watchSystem();
 	});
 
 	async function signOut() {

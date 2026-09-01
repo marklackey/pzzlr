@@ -49,13 +49,13 @@
 
 			<div class="board-card" class:multi={data.game.mode === 'quordle'}>
 				{#if data.game.mode === 'wordle'}
-					<pzzlr-wordle apibase="" game={data.game.id} theme={theme.resolved}></pzzlr-wordle>
+					<pzzlr-wordle apibase="" game={data.game.id} theme={theme.attr}></pzzlr-wordle>
 				{:else if data.game.mode === 'quordle'}
-					<pzzlr-quordle apibase="" game={data.game.id} theme={theme.resolved}></pzzlr-quordle>
+					<pzzlr-quordle apibase="" game={data.game.id} theme={theme.attr}></pzzlr-quordle>
 				{:else if data.game.mode === 'absurdle'}
-					<pzzlr-absurdle apibase="" game={data.game.id} theme={theme.resolved}></pzzlr-absurdle>
+					<pzzlr-absurdle apibase="" game={data.game.id} theme={theme.attr}></pzzlr-absurdle>
 				{:else}
-					<pzzlr-ladder apibase="" game={data.game.id} theme={theme.resolved}></pzzlr-ladder>
+					<pzzlr-ladder apibase="" game={data.game.id} theme={theme.attr}></pzzlr-ladder>
 				{/if}
 			</div>
 		{:else}
