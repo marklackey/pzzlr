@@ -8,15 +8,27 @@
 	import { createShareCopy } from './share';
 	import { scrollIntoViewWithin } from './scroll';
 
-	let { apibase = '', game = '', date = '', apikey = '' } = $props<{
+	let { apibase = '', game = '', date = '', apikey = '', revealed = '' } = $props<{
 		apibase?: string;
 		/** Id of a stored game config (mode: "quordle"). See Ladder.svelte for why this is required. */
 		game: string;
 		/** Override the daily puzzle's date (YYYY-MM-DD); mainly for testing. */
 		date?: string;
+		/** Comma-separated answer for a day that's over, drawn on the board rather than played for — set by the website's archive (see /g/[id]/archive). */
+		revealed?: string;
 		/** Required for a private game — see the game's "Manage this game" panel. */
 		apikey?: string;
 	}>();
+
+	// The answer to a finished day, when the page has fetched one. Splitting
+	// here rather than taking JSON keeps this an ordinary attribute a plain
+	// HTML page could set.
+	const revealedWords = $derived(
+		revealed
+			.split(',')
+			.map((word) => word.trim())
+			.filter(Boolean)
+	);
 
 	type Status = 'loading' | 'playing' | 'finished' | 'error';
 
@@ -37,10 +49,10 @@
 	let gameName = $state<string | null>(null);
 	// One guessed word per row, shared across every board. boardResults[i] is
 	// board i's per-guess scoring; boardSolvedAt[i] is the 1-based guess
-	// index that solved board i, or null while it's still open. There's no
-	// server-side attempt record for quordle (see the backend route's doc
-	// comments) — all of this lives only in this component's state, so a
-	// reload just starts the board set over.
+	// index that solved board i, or null while it's still open. All of it is
+	// recomputed from the attempt the server holds (see the daily route's
+	// `resumed`), so a reload picks the board set back up where it was
+	// rather than starting it over.
 	let guesses = $state<string[]>([]);
 	let boardResults = $state<LetterResult[][][]>([]);
 	let boardSolvedAt = $state<(number | null)[]>([]);
@@ -49,6 +61,35 @@
 	let message = $state('');
 
 	const allSolved = $derived(boardSolvedAt.length > 0 && boardSolvedAt.every((v) => v !== null));
+	/** What each board's word display shows: a revealed day's answer, else whatever a finished attempt fetched. */
+	const shownTargets = $derived(revealedWords.length > 0 ? revealedWords : revealedTargets);
+
+	// Server-side scoring/reveal is keyed off this per-(browser, game)
+	// attempt token rather than a login — the widget is played anonymously
+	// on embed pages, so there's no account to hang it off. Persisted in
+	// localStorage so a reload resumes the same attempt instead of forking a
+	// new one; falls back to an in-memory token (still lets the current page
+	// load play normally) if storage is unavailable, e.g. private browsing
+	// with storage blocked. Same shape as the wordle widget's.
+	function attemptToken(): string {
+		const key = `pzzlr-quordle-token:${game}`;
+		try {
+			let token = localStorage.getItem(key);
+			if (!token) {
+				token = crypto.randomUUID();
+				localStorage.setItem(key, token);
+			}
+			return token;
+		} catch {
+			return crypto.randomUUID();
+		}
+	}
+	const token = attemptToken();
+
+	/** Whether every letter of a scored row came back correct — how a solved board reads. */
+	function rowSolves(row: LetterResult[]): boolean {
+		return row.length > 0 && row.every((letter) => letter.status === 'correct');
+	}
 
 	/** Loads `day`'s board set, defaulting to the `date` override, or to today when there's neither. */
 	async function loadPuzzle(day: string | undefined = date || undefined) {
@@ -61,10 +102,9 @@
 		status = 'loading';
 		message = '';
 		try {
-			const params = new URLSearchParams();
+			const params = new URLSearchParams({ token });
 			if (day) params.set('date', day);
-			const qs = params.toString();
-			const res = await fetch(`${apibase}/api/games/${game}/quordle/daily${qs ? `?${qs}` : ''}`, {
+			const res = await fetch(`${apibase}/api/games/${game}/quordle/daily?${params}`, {
 				headers: authHeaders(apikey)
 			});
 			if (!res.ok) throw new Error(`puzzle request failed: ${res.status}`);
@@ -76,14 +116,29 @@
 			puzzleNumber = data.puzzleNumber ?? null;
 			puzzleDay = data.date ?? null;
 			gameName = data.name ?? null;
-			guesses = [];
-			boardResults = Array.from({ length: boardCount }, () => []);
-			boardSolvedAt = Array.from({ length: boardCount }, () => null);
+			const resumed = data.resumed as {
+				guesses: string[];
+				boardResults: LetterResult[][][];
+				solved: boolean;
+			} | null;
+			guesses = resumed?.guesses ?? [];
+			boardResults =
+				resumed?.boardResults ?? Array.from({ length: boardCount }, () => []);
+			// Which guess solved each board falls out of the rows themselves —
+			// the first all-correct one — so there's nothing extra to store.
+			boardSolvedAt = boardResults.map((rows) => {
+				const index = rows.findIndex(rowSolves);
+				return index === -1 ? null : index + 1;
+			});
 			rowEls.length = 0;
 			for (let i = 0; i < boardCount; i++) rowEls.push([]);
 			revealedTargets = [];
 			currentGuess = '';
-			status = 'playing';
+			status =
+				resumed?.solved || guesses.length >= maxGuesses ? 'finished' : 'playing';
+			// A board set that was already over when this loaded still owes the
+			// player the words it ended on.
+			if (status === 'finished' && !resumed?.solved) await reveal();
 		} catch (err) {
 			message = err instanceof Error ? err.message : 'failed to load puzzle';
 			status = 'error';
@@ -92,13 +147,12 @@
 
 	async function reveal() {
 		try {
-			const params = new URLSearchParams();
+			const params = new URLSearchParams({ token });
 			// This board set's day, not today's — the secrets to show are the
 			// ones it was played against. See puzzleDay.
 			const day = puzzleDay ?? (date || undefined);
 			if (day) params.set('date', day);
-			const qs = params.toString();
-			const res = await fetch(`${apibase}/api/games/${game}/quordle/reveal${qs ? `?${qs}` : ''}`, {
+			const res = await fetch(`${apibase}/api/games/${game}/quordle/reveal?${params}`, {
 				headers: authHeaders(apikey)
 			});
 			if (res.ok) revealedTargets = (await res.json()).targets;
@@ -116,7 +170,14 @@
 			headers: { 'content-type': 'application/json', ...authHeaders(apikey) },
 			// The day is this board set's own (see puzzleDay), not today's — the
 			// guess is scored against the secrets being played.
-			body: JSON.stringify({ guess, date: puzzleDay ?? (date || undefined) })
+			// `rows` is what the server checks this board set against, so a
+			// stale tab can't spend a guess out of a board it isn't showing.
+			body: JSON.stringify({
+				guess,
+				token,
+				rows: guesses.length,
+				date: puzzleDay ?? (date || undefined)
+			})
 		});
 		const result = await res.json();
 
@@ -147,7 +208,7 @@
 	}
 
 	const { typeLetter, backspace, handleKeydown } = createKeyboardHandlers({
-		isActive: () => status === 'playing',
+		isActive: () => status === 'playing' && revealedWords.length === 0,
 		currentGuess: () => currentGuess,
 		setCurrentGuess: (value) => (currentGuess = value),
 		maxLength: () => wordLength,
@@ -250,7 +311,7 @@
 				{#if puzzleNumber}
 					<span class="puzzle-number">#{puzzleNumber}</span>
 				{/if}
-				<span class="length-hint">{boardCount} boards · {wordLength} letters</span>
+				<span class="board-count">{boardCount} boards</span>
 				<span class="guess-count">{guesses.length}/{maxGuesses} guesses</span>
 			</div>
 
@@ -284,8 +345,8 @@
 						</div>
 						{#if boardSolvedAt[i] !== null}
 							<p class="board-status solved">guess {boardSolvedAt[i]}</p>
-						{:else if status === 'finished' && revealedTargets[i]}
-							<p class="board-status lost">{revealedTargets[i].toUpperCase()}</p>
+						{:else if shownTargets[i]}
+							<p class="board-status lost">{shownTargets[i].toUpperCase()}</p>
 						{/if}
 					</div>
 				{/each}
@@ -336,19 +397,29 @@
 	   percentage width — without this, .quordle's width:100% below has
 	   nothing concrete to size against. */
 	:host {
-		display: block;
+		/* A flex column rather than a plain block so the root below can fill
+		   whatever height the host ends up with — including a height it got
+		   by being stretched as someone else's flex item, which a percentage
+		   height can't read (the parent's height isn't definite then, so
+		   `height: 100%` silently falls back to content height and the
+		   keyboard stops sitting on the bottom edge). Still a block-level box
+		   with a definite width, which is what the root's width: 100% needs. */
+		display: flex;
+		flex-direction: column;
 		width: 100%;
 		box-sizing: border-box;
 	}
 	.quordle {
-		--hit: #4a8f5c;
-		--present: #b8952f;
-		--miss: #6b6578;
-		--ink: #201d2b;
-		--ink-muted: #6b6578;
-		--line: #e4e1db;
-		--key-bg: #edeaf7;
-		--key-bg-hover: #ded7f5;
+		--accent: #2b6d8f;
+		--accent-hover: #235a77;
+		--hit: #3f7f63;
+		--present: #b8883a;
+		--miss: #6c6675;
+		--ink: #1b1922;
+		--ink-muted: #6d6878;
+		--line: #e4dfd6;
+		--key-bg: #eeeae2;
+		--key-bg-hover: #e2dcd0;
 		--bg: #fff;
 		/* Row geometry, shared by the tiles themselves and by the desktop
 		   height below that reserves room for --visible-rows of them. */
@@ -366,12 +437,14 @@
 		background: var(--bg);
 		display: flex;
 		flex-direction: column;
-		/* Only resolves to something when the host gives this element a
-		   definite height (the phone layout does — see .board-card in the
-		   website's g/[id] page). Then .scroll-area/.keyboard below split
-		   that height and the keyboard sits on the bottom edge. Everywhere
-		   else this is auto and the widget just sizes to its content. */
-		height: 100%;
+		/* Fills the host: a definite height given by an embed, or the one
+		   the website's phone layout stretches it to (see .board-card in
+		   g/[id]/+page.svelte). Then .scroll-area/.keyboard below split
+		   that height and the keyboard sits on the bottom edge. With no
+		   height to fill, this is just content height and the widget sizes
+		   to itself. */
+		flex: 1 1 auto;
+		min-height: 0;
 	}
 	/* Everything above the keyboard. Scrolls within its own share of the
 	   height when the widget has one, so a tall board never runs underneath
@@ -524,7 +597,7 @@
 		padding: 1.1rem 0.2rem;
 		border: none;
 		box-sizing: border-box;
-		border-radius: 8px;
+		border-radius: 9px;
 		background: var(--key-bg);
 		color: var(--ink);
 		text-transform: uppercase;
@@ -549,8 +622,11 @@
 		padding-right: 0.15rem;
 	}
 	button.enter {
-		background: var(--hit);
+		background: var(--accent);
 		color: white;
+	}
+	button.enter:hover {
+		background: var(--accent-hover);
 	}
 	button.correct {
 		background: var(--hit);
@@ -579,5 +655,46 @@
 	.message {
 		color: #b91c1c;
 		font-size: 0.85rem;
+	}
+	/* Phone: the website's game page lets the whole page scroll instead of
+	   handing this widget the viewport's height (see .board-card in
+	   g/[id]/+page.svelte), so board and keyboard have to earn their space
+	   — at full size the two together were taller than a phone screen on
+	   their own, which is what made a second, inner scroller necessary in
+	   the first place. Smaller tiles, tighter gaps, shorter keys: the same
+	   layout, roughly a third less tall, and the page scrolls as one. */
+	@media (max-width: 480px) {
+		.game-name {
+			font-size: 1.1rem;
+			margin-bottom: 0.35rem;
+		}
+		.header {
+			margin-bottom: 0.6rem;
+		}
+		.boards {
+			margin-bottom: 0.6rem;
+		}
+		.keyboard {
+			gap: 0.35rem;
+			padding: 0.4rem 0 0.4rem;
+			/* Pinned to the bottom edge of the screen for as long as any part of
+			   the puzzle is on screen. Sticky rather than fixed on purpose: it
+			   keeps its place in the flow, so nothing is ever hidden underneath
+			   it, and it doesn't sit on top of whatever else the page has below
+			   the game. This is why the board scrolls with the page instead of
+			   inside its own pane — the keyboard staying put was the thing that
+			   layout was for, and it has to hold now that the page owns the
+			   scroll. */
+			position: sticky;
+			bottom: 0;
+			z-index: 2;
+		}
+		.krow {
+			gap: 0.25rem;
+		}
+		button {
+			padding: 0.85rem 0.2rem;
+			font-size: 1rem;
+		}
 	}
 </style>

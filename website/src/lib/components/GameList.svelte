@@ -1,17 +1,31 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { DEFAULT_DICTIONARY_SIZE, type GameRow } from '$lib/types';
+	import { MODE_LABELS, type GameRow } from '$lib/types';
+	import FavoriteButton from './FavoriteButton.svelte';
 
-	let { games, emptyMessage }: { games: GameRow[]; emptyMessage: string } = $props();
+	interface Props {
+		games: GameRow[];
+		emptyMessage: string;
+		/**
+		 * Which of these games the viewer has starred. Null means don't offer
+		 * stars at all — nobody's signed in, so there's no shelf to put one
+		 * on. An empty array is the other thing entirely: signed in, nothing
+		 * starred yet.
+		 */
+		favoriteIds?: string[] | null;
+	}
 
-	const FALLBACK_TITLE: Record<Exclude<GameRow['mode'], 'ladder'>, string> = {
-		wordle: 'Wordle game',
-		quordle: 'Quordle game',
-		absurdle: 'Absurdle game'
-	};
+	let { games, emptyMessage, favoriteIds = null }: Props = $props();
+
+	const favorites = $derived(new Set(favoriteIds ?? []));
+
+	// Every game made since names became required has one; these are the
+	// older ones, which still have to say something in the list.
 	function gameTitle(game: GameRow): string {
 		if (game.name) return game.name;
-		return game.mode === 'ladder' ? (game.target ?? 'Random game') : FALLBACK_TITLE[game.mode];
+		return game.mode === 'ladder'
+			? (game.target ?? 'Random game')
+			: `${MODE_LABELS[game.mode]} game`;
 	}
 </script>
 
@@ -21,32 +35,22 @@
 	<ul>
 		{#each games as game (game.id)}
 			<li class="card">
-				<a class="title" href={resolve('/g/[id]', { id: game.id })}>
-					{gameTitle(game)}
-				</a>
-				<div class="meta">
-					{#if game.mode === 'absurdle'}
-						<span class="badge">🌀 adversarial</span>
-						<span>{game.length} letters</span>
-						<span>no guess limit</span>
-					{:else if game.mode === 'quordle'}
-						<span class="badge">🤫 {game.boardCount} secret words</span>
-						<span>{game.length} letters</span>
-						<span>{game.maxGuesses} guesses</span>
-					{:else if game.mode === 'wordle'}
-						<span class="badge">🤫 secret word</span>
-						<span>{game.length} letters</span>
-						<span>{game.maxGuesses} guesses</span>
-					{:else}
-						<span class="badge">{game.target ?? '🎲 random target'}</span>
-						<span>{game.length} letters</span>
-						<span>min {game.minSteps} steps</span>
-						{#if game.rungsGiven > 0}
-							<span>{game.rungsGiven} rung{game.rungsGiven === 1 ? '' : 's'} given</span>
-						{/if}
+				<div class="row-head">
+					<a class="title" href={resolve('/g/[id]', { id: game.id })}>
+						{gameTitle(game)}
+					</a>
+					{#if favoriteIds}
+						<FavoriteButton gameId={game.id} favorited={favorites.has(game.id)} />
 					{/if}
-					{#if game.dictionarySize !== DEFAULT_DICTIONARY_SIZE}
-						<span>dictionary size {game.dictionarySize}</span>
+				</div>
+				<div class="meta">
+					<span class="badge badge-{game.mode}">{MODE_LABELS[game.mode]}</span>
+					<!-- A ladder's target is the player's visible goal — it's the
+					     whole point of the row. Every other mode's is the secret
+					     the game is built on, so it never appears in a listing
+					     even for the owner (see withoutSecret in db/games.ts). -->
+					{#if game.mode === 'ladder' && game.target}
+						<span class="target">→ {game.target.toUpperCase()}</span>
 					{/if}
 					{#if !game.public}
 						<span>private</span>
@@ -71,6 +75,12 @@
 		flex-direction: column;
 		gap: var(--space-2);
 	}
+	.row-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--space-3);
+	}
 	.title {
 		font-weight: 700;
 		font-size: 1.05rem;
@@ -86,5 +96,16 @@
 		gap: var(--space-3);
 		font-size: 0.85rem;
 		color: var(--color-text-muted);
+	}
+	.target {
+		font-weight: 700;
+		letter-spacing: 0.06em;
+		color: var(--color-text);
+	}
+	li {
+		transition: border-color 0.15s;
+	}
+	li:hover {
+		border-color: var(--color-border-strong);
 	}
 </style>

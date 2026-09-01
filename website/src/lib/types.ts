@@ -50,6 +50,17 @@ export function isHardModePolicy(value: unknown): value is HardModePolicy {
 	return HARD_MODES.includes(value as HardModePolicy);
 }
 
+export const GAME_MODES = ['ladder', 'wordle', 'quordle', 'absurdle'] as const;
+export type GameMode = (typeof GAME_MODES)[number];
+
+/** How each mode is named to players — capitalized, since it's a proper name for the game rather than a description of it. */
+export const MODE_LABELS: Record<GameMode, string> = {
+	ladder: 'Ladder',
+	wordle: 'Wordle',
+	quordle: 'Quordle',
+	absurdle: 'Absurdle'
+};
+
 /**
  * Shape GameList and ExploreGames need — a subset of the gameConfig row.
  * `target` is null both for genuine daily-mode games and for any wordle
@@ -59,7 +70,7 @@ export function isHardModePolicy(value: unknown): value is HardModePolicy {
 export interface GameRow {
 	id: string;
 	name: string | null;
-	mode: 'ladder' | 'wordle' | 'quordle' | 'absurdle';
+	mode: GameMode;
 	target: string | null;
 	length: number;
 	minSteps: number;

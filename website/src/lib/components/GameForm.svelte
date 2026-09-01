@@ -686,7 +686,7 @@
 	section:not([hidden]) {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-4);
+		gap: var(--space-5);
 	}
 	.label-row {
 		display: flex;

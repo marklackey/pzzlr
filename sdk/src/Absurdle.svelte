@@ -23,17 +23,36 @@
 	let totalWords = $state(0);
 	let remaining = $state(0);
 	let gameName = $state<string | null>(null);
-	// guesses/results are purely this widget's own display history — no
-	// server-side attempt record exists (see the backend route's doc
-	// comment). The server-side game state is candidateToken instead: an
-	// opaque encoding of "what's still possible" that the server hands back
-	// after each guess and this widget just echoes on the next one, rather
-	// than resending the full guesses list for the server to replay.
+	// The board's history, restored from the run the server holds (see the
+	// start route's `resumed`), so a reload picks the run back up. Alongside
+	// it, candidateToken is the opaque "what's still possible" set the
+	// server hands back after each guess and this widget echoes on the next
+	// one — the narrowing is the mechanic, and carrying it saves replaying
+	// every guess to score the next.
 	let guesses = $state<string[]>([]);
 	let results = $state<LetterResult[][]>([]);
 	let candidateToken = $state<string | null>(null);
 	let currentGuess = $state('');
 	let message = $state('');
+
+	// Per-(browser, game) attempt token, the same one every other mode uses
+	// — the widget plays anonymously on embed pages, so there's no account
+	// to hang a run off. Persisted so a reload resumes; falls back to an
+	// in-memory id when storage is unavailable (private browsing).
+	function attemptToken(): string {
+		const key = `pzzlr-absurdle-token:${game}`;
+		try {
+			let token = localStorage.getItem(key);
+			if (!token) {
+				token = crypto.randomUUID();
+				localStorage.setItem(key, token);
+			}
+			return token;
+		} catch {
+			return crypto.randomUUID();
+		}
+	}
+	const token = attemptToken();
 
 	async function loadStart() {
 		if (!game) {
@@ -45,7 +64,7 @@
 		status = 'loading';
 		message = '';
 		try {
-			const res = await fetch(`${apibase}/api/games/${game}/absurdle/start`, {
+			const res = await fetch(`${apibase}/api/games/${game}/absurdle/start?token=${token}`, {
 				headers: authHeaders(apikey)
 			});
 			if (!res.ok) throw new Error(`puzzle request failed: ${res.status}`);
@@ -53,13 +72,20 @@
 
 			wordLength = data.length;
 			totalWords = data.totalWords;
-			remaining = data.totalWords;
 			gameName = data.name ?? null;
-			guesses = [];
-			results = [];
-			candidateToken = null;
+			const resumed = data.resumed as {
+				guesses: string[];
+				results: LetterResult[][];
+				remaining: number;
+				won: boolean;
+				candidates: string;
+			} | null;
+			guesses = resumed?.guesses ?? [];
+			results = resumed?.results ?? [];
+			remaining = resumed?.remaining ?? data.totalWords;
+			candidateToken = resumed?.candidates ?? null;
 			currentGuess = '';
-			status = 'playing';
+			status = resumed?.won ? 'won' : 'playing';
 		} catch (err) {
 			message = err instanceof Error ? err.message : 'failed to load puzzle';
 			status = 'error';
@@ -73,7 +99,7 @@
 		const res = await fetch(`${apibase}/api/games/${game}/absurdle/guess`, {
 			method: 'POST',
 			headers: { 'content-type': 'application/json', ...authHeaders(apikey) },
-			body: JSON.stringify({ guess, token: candidateToken })
+			body: JSON.stringify({ guess, token, candidates: candidateToken })
 		});
 		const result = await res.json();
 
@@ -87,7 +113,7 @@
 		guesses = [...guesses, guess];
 		results = [...results, result.result];
 		remaining = result.remaining;
-		candidateToken = result.token ?? null;
+		candidateToken = result.candidates ?? null;
 		currentGuess = '';
 
 		if (result.won) status = 'won';
@@ -161,9 +187,9 @@
 				<h2 class="game-name">{gameName}</h2>
 			{/if}
 			<div class="header">
-				<span class="remaining">{remaining.toLocaleString()} of {totalWords.toLocaleString()} words possible</span
+				<span class="remaining"
+					>{remaining.toLocaleString()} of {totalWords.toLocaleString()} words possible</span
 				>
-				<span class="length-hint">{wordLength} letters</span>
 			</div>
 
 			<div class="board" bind:this={boardEl}>
@@ -234,19 +260,29 @@
 	   percentage width — without this, .absurdle's width:100% below has
 	   nothing concrete to size against. */
 	:host {
-		display: block;
+		/* A flex column rather than a plain block so the root below can fill
+		   whatever height the host ends up with — including a height it got
+		   by being stretched as someone else's flex item, which a percentage
+		   height can't read (the parent's height isn't definite then, so
+		   `height: 100%` silently falls back to content height and the
+		   keyboard stops sitting on the bottom edge). Still a block-level box
+		   with a definite width, which is what the root's width: 100% needs. */
+		display: flex;
+		flex-direction: column;
 		width: 100%;
 		box-sizing: border-box;
 	}
 	.absurdle {
-		--hit: #4a8f5c;
-		--present: #b8952f;
-		--miss: #6b6578;
-		--ink: #201d2b;
-		--ink-muted: #6b6578;
-		--line: #e4e1db;
-		--key-bg: #edeaf7;
-		--key-bg-hover: #ded7f5;
+		--accent: #a8543f;
+		--accent-hover: #8e4635;
+		--hit: #3f7f63;
+		--present: #b8883a;
+		--miss: #6c6675;
+		--ink: #1b1922;
+		--ink-muted: #6d6878;
+		--line: #e4dfd6;
+		--key-bg: #eeeae2;
+		--key-bg-hover: #e2dcd0;
 		--bg: #fff;
 		/* Row geometry, shared by the tiles themselves and by the desktop
 		   height below that reserves room for --visible-rows of them. */
@@ -267,12 +303,14 @@
 		background: var(--bg);
 		display: flex;
 		flex-direction: column;
-		/* Only resolves to something when the host gives this element a
-		   definite height (the phone layout does — see .board-card in the
-		   website's g/[id] page). Then .scroll-area/.keyboard below split
-		   that height and the keyboard sits on the bottom edge. Everywhere
-		   else this is auto and the widget just sizes to its content. */
-		height: 100%;
+		/* Fills the host: a definite height given by an embed, or the one
+		   the website's phone layout stretches it to (see .board-card in
+		   g/[id]/+page.svelte). Then .scroll-area/.keyboard below split
+		   that height and the keyboard sits on the bottom edge. With no
+		   height to fill, this is just content height and the widget sizes
+		   to itself. */
+		flex: 1 1 auto;
+		min-height: 0;
 	}
 	/* Everything above the keyboard. Scrolls within its own share of the
 	   height when the widget has one, so a tall board never runs underneath
@@ -337,7 +375,7 @@
 		align-items: center;
 		justify-content: center;
 		border: var(--tile-border) solid var(--line);
-		border-radius: 8px;
+		border-radius: 9px;
 		font-weight: 700;
 		font-size: 1.15rem;
 	}
@@ -392,7 +430,7 @@
 		padding: 1.1rem 0.2rem;
 		border: none;
 		box-sizing: border-box;
-		border-radius: 8px;
+		border-radius: 9px;
 		background: var(--key-bg);
 		color: var(--ink);
 		text-transform: uppercase;
@@ -417,8 +455,11 @@
 		padding-right: 0.15rem;
 	}
 	button.enter {
-		background: var(--hit);
+		background: var(--accent);
 		color: white;
+	}
+	button.enter:hover {
+		background: var(--accent-hover);
 	}
 	button.correct {
 		background: var(--hit);
@@ -451,5 +492,50 @@
 	.message {
 		color: #b91c1c;
 		font-size: 0.85rem;
+	}
+	/* Phone: the website's game page lets the whole page scroll instead of
+	   handing this widget the viewport's height (see .board-card in
+	   g/[id]/+page.svelte), so board and keyboard have to earn their space
+	   — at full size the two together were taller than a phone screen on
+	   their own, which is what made a second, inner scroller necessary in
+	   the first place. Smaller tiles, tighter gaps, shorter keys: the same
+	   layout, roughly a third less tall, and the page scrolls as one. */
+	@media (max-width: 480px) {
+		.absurdle {
+			--tile-max: 2.8rem;
+			--row-gap: 0.3rem;
+		}
+		.game-name {
+			font-size: 1.1rem;
+			margin-bottom: 0.35rem;
+		}
+		.header {
+			margin-bottom: 0.6rem;
+		}
+		.board {
+			margin-bottom: 0.6rem;
+		}
+		.keyboard {
+			gap: 0.35rem;
+			padding: 0.4rem 0 0.4rem;
+			/* Pinned to the bottom edge of the screen for as long as any part of
+			   the puzzle is on screen. Sticky rather than fixed on purpose: it
+			   keeps its place in the flow, so nothing is ever hidden underneath
+			   it, and it doesn't sit on top of whatever else the page has below
+			   the game. This is why the board scrolls with the page instead of
+			   inside its own pane — the keyboard staying put was the thing that
+			   layout was for, and it has to hold now that the page owns the
+			   scroll. */
+			position: sticky;
+			bottom: 0;
+			z-index: 2;
+		}
+		.krow {
+			gap: 0.25rem;
+		}
+		button {
+			padding: 0.85rem 0.2rem;
+			font-size: 1rem;
+		}
 	}
 </style>

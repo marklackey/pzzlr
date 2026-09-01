@@ -21,6 +21,33 @@ export interface GuessInputBinding {
 	submit: () => void;
 }
 
+// A widget's key listener sits on the window, so a widget embedded beside
+// other controls (the game page puts its edit form next to the board) hears
+// every keystroke on the page. A keystroke aimed at a text field belongs to
+// that field — typing a game's name shouldn't also spell it out on the
+// board. Checkboxes, buttons and the like are deliberately not excluded:
+// letters mean nothing to them, so the board is still the right home for a
+// letter typed while one has focus.
+const NON_TEXT_INPUT_TYPES = new Set([
+	'button',
+	'checkbox',
+	'color',
+	'file',
+	'image',
+	'radio',
+	'range',
+	'reset',
+	'submit'
+]);
+
+function isTextEntry(node: unknown): boolean {
+	if (!(node instanceof HTMLElement)) return false;
+	if (node.isContentEditable) return true;
+	if (node instanceof HTMLTextAreaElement || node instanceof HTMLSelectElement) return true;
+	if (node instanceof HTMLInputElement) return !NON_TEXT_INPUT_TYPES.has(node.type);
+	return false;
+}
+
 export function createKeyboardHandlers(binding: GuessInputBinding) {
 	function typeLetter(letter: string) {
 		if (!binding.isActive()) return;
@@ -36,6 +63,12 @@ export function createKeyboardHandlers(binding: GuessInputBinding) {
 
 	function handleKeydown(e: KeyboardEvent) {
 		if (!binding.isActive()) return;
+		// A shortcut (⌘A, Ctrl+C) is not a guess.
+		if (e.metaKey || e.ctrlKey || e.altKey) return;
+		// composedPath() sees through a shadow root, so an input inside one
+		// on the host page is recognised as well; e.target would have been
+		// retargeted to its host element by the time it reaches the window.
+		if (isTextEntry(e.composedPath?.()[0] ?? e.target)) return;
 		if (e.key === 'Enter') {
 			binding.submit();
 		} else if (e.key === 'Backspace') {

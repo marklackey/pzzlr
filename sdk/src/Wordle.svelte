@@ -8,15 +8,27 @@
 	import { createShareCopy } from './share';
 	import { scrollIntoViewWithin } from './scroll';
 
-	let { apibase = '', game = '', date = '', apikey = '' } = $props<{
+	let { apibase = '', game = '', date = '', apikey = '', revealed = '' } = $props<{
 		apibase?: string;
 		/** Id of a stored game config (mode: "wordle"). See Ladder.svelte for why this is required. */
 		game: string;
 		/** Override the daily puzzle's date (YYYY-MM-DD); mainly for testing. */
 		date?: string;
+		/** Comma-separated answer for a day that's over, drawn on the board rather than played for — set by the website's archive (see /g/[id]/archive). */
+		revealed?: string;
 		/** Required for a private game — see the game's "Manage this game" panel. */
 		apikey?: string;
 	}>();
+
+	// The answer to a finished day, when the page has fetched one. Splitting
+	// here rather than taking JSON keeps this an ordinary attribute a plain
+	// HTML page could set.
+	const revealedWords = $derived(
+		revealed
+			.split(',')
+			.map((word) => word.trim())
+			.filter(Boolean)
+	);
 
 	type Status = 'loading' | 'playing' | 'won' | 'lost' | 'error';
 
@@ -211,12 +223,27 @@
 	}
 
 	const { typeLetter, backspace, handleKeydown } = createKeyboardHandlers({
-		isActive: () => status === 'playing',
+		isActive: () => status === 'playing' && revealedWords.length === 0,
 		currentGuess: () => currentGuess,
 		setCurrentGuess: (value) => (currentGuess = value),
 		maxLength: () => wordLength,
 		submit: submitGuess
 	});
+
+	// A <details> closes only when its own summary is clicked, so dismissing
+	// it any other way is on us. composedPath() is what reaches into this
+	// widget: by the time a click gets to the document its target has been
+	// retargeted to the host element, so `contains` would say no to a click
+	// on the panel itself.
+	let hardModeHelp: HTMLDetailsElement | undefined = $state();
+	function handleDocumentClick(e: MouseEvent) {
+		if (!hardModeHelp?.open) return;
+		if (e.composedPath().includes(hardModeHelp)) return;
+		hardModeHelp.open = false;
+	}
+	function handleDocumentKeydown(e: KeyboardEvent) {
+		if (e.key === 'Escape' && hardModeHelp?.open) hardModeHelp.open = false;
+	}
 
 	function keyStatus(letter: string) {
 		return bestLetterStatus(guesses, letter);
@@ -263,6 +290,7 @@
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
+<svelte:document onclick={handleDocumentClick} onkeydown={handleDocumentKeydown} />
 
 <div class="wordle">
 	{#if status === 'loading'}
@@ -277,17 +305,33 @@
 			{#if puzzleNumber}
 				<div class="header">
 					<span class="puzzle-number">#{puzzleNumber}</span>
-					<span class="length-hint">{wordLength} letters</span>
 				</div>
 			{/if}
 
-			{#if hardModeOpen}
-				<label class="hard-mode">
-					<input type="checkbox" bind:checked={hardMode} />
-					Hard mode — every hint has to be reused. Locks in when you guess.
-				</label>
-			{:else if hardMode}
-				<p class="hard-mode on">Hard mode: every hint has to be reused.</p>
+			{#if hardModeOpen || hardMode}
+				<div class="hard-mode" class:on={!hardModeOpen}>
+					{#if hardModeOpen}
+						<label>
+							<input type="checkbox" bind:checked={hardMode} />
+							Hard mode
+						</label>
+					{:else}
+						<span>Hard mode</span>
+					{/if}
+					<!-- The rule is two sentences long, and most players already
+					     know it — so it sits behind a mark rather than in a line
+					     of small print above every board. -->
+					<details class="explainer" bind:this={hardModeHelp}>
+						<summary aria-label="What is hard mode?">?</summary>
+						<div class="explainer-body">
+							Every hint has to be reused: a green letter stays where it is, and a yellow one has to
+							turn up somewhere in each later guess.
+							{#if hardModeOpen}
+								Your choice locks in as soon as you guess.
+							{/if}
+						</div>
+					</details>
+				</div>
 			{/if}
 
 			<div class="board" bind:this={boardEl}>
@@ -297,7 +341,7 @@
 							{#each guesses[rowIndex] as { letter, status: s }, i (i)}
 								<div class="tile filled {s}">{letter.toUpperCase()}</div>
 							{/each}
-						{:else if rowIndex === guesses.length && status === 'playing'}
+						{:else if rowIndex === guesses.length && status === 'playing' && revealedWords.length === 0}
 							{#each Array.from({ length: wordLength }) as _, i (i)}
 								<div class="tile input">{currentGuess[i]?.toUpperCase() ?? ''}</div>
 							{/each}
@@ -358,19 +402,29 @@
 	   percentage width — without this, .wordle's width:100% below has
 	   nothing concrete to size against. */
 	:host {
-		display: block;
+		/* A flex column rather than a plain block so the root below can fill
+		   whatever height the host ends up with — including a height it got
+		   by being stretched as someone else's flex item, which a percentage
+		   height can't read (the parent's height isn't definite then, so
+		   `height: 100%` silently falls back to content height and the
+		   keyboard stops sitting on the bottom edge). Still a block-level box
+		   with a definite width, which is what the root's width: 100% needs. */
+		display: flex;
+		flex-direction: column;
 		width: 100%;
 		box-sizing: border-box;
 	}
 	.wordle {
-		--hit: #4a8f5c;
-		--present: #b8952f;
-		--miss: #6b6578;
-		--ink: #201d2b;
-		--ink-muted: #6b6578;
-		--line: #e4e1db;
-		--key-bg: #edeaf7;
-		--key-bg-hover: #ded7f5;
+		--accent: #2f7a5e;
+		--accent-hover: #276750;
+		--hit: #3f7f63;
+		--present: #b8883a;
+		--miss: #6c6675;
+		--ink: #1b1922;
+		--ink-muted: #6d6878;
+		--line: #e4dfd6;
+		--key-bg: #eeeae2;
+		--key-bg-hover: #e2dcd0;
 		--bg: #fff;
 		/* Row geometry, shared by the tiles themselves and by the desktop
 		   height below that reserves room for --visible-rows of them. */
@@ -394,12 +448,14 @@
 		background: var(--bg);
 		display: flex;
 		flex-direction: column;
-		/* Only resolves to something when the host gives this element a
-		   definite height (the phone layout does — see .board-card in the
-		   website's g/[id] page). Then .scroll-area/.keyboard below split
-		   that height and the keyboard sits on the bottom edge. Everywhere
-		   else this is auto and the widget just sizes to its content. */
-		height: 100%;
+		/* Fills the host: a definite height given by an embed, or the one
+		   the website's phone layout stretches it to (see .board-card in
+		   g/[id]/+page.svelte). Then .scroll-area/.keyboard below split
+		   that height and the keyboard sits on the bottom edge. With no
+		   height to fill, this is just content height and the widget sizes
+		   to itself. */
+		flex: 1 1 auto;
+		min-height: 0;
 	}
 	/* Everything above the keyboard. Scrolls within its own share of the
 	   height when the widget has one, so a tall board never runs underneath
@@ -429,6 +485,10 @@
 	/* Reads as a note about the rules rather than a control to hunt for:
 	   it matters before the first guess and is just a reminder after. */
 	.hard-mode {
+		/* The panel below hangs off this row rather than off the mark itself,
+		   so it spans the widget's own width and can never be clipped by the
+		   scroll area for sticking out the side of a narrow embed. */
+		position: relative;
 		display: flex;
 		align-items: center;
 		gap: 0.4rem;
@@ -436,8 +496,52 @@
 		color: var(--ink-muted);
 		margin: -0.5rem 0 0.8rem;
 	}
+	.hard-mode label {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+	}
 	.hard-mode.on {
 		font-weight: 700;
+	}
+	.explainer {
+		display: inline-flex;
+		font-weight: normal;
+	}
+	.explainer summary {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 1.1rem;
+		height: 1.1rem;
+		border-radius: 50%;
+		background: var(--key-bg);
+		color: var(--ink-muted);
+		font-size: 0.7rem;
+		font-weight: 700;
+		cursor: pointer;
+		list-style: none;
+	}
+	.explainer summary::-webkit-details-marker {
+		display: none;
+	}
+	.explainer-body {
+		position: absolute;
+		z-index: 1;
+		top: 100%;
+		left: 0;
+		right: 0;
+		margin-top: 0.3rem;
+		padding: 0.5rem 0.7rem;
+		font-size: 0.8rem;
+		font-weight: normal;
+		line-height: 1.4;
+		text-align: left;
+		color: var(--ink-muted);
+		background: var(--bg);
+		border: 1px solid var(--line);
+		border-radius: 0.4rem;
+		box-shadow: 0 4px 12px rgb(32 29 43 / 0.12);
 	}
 	.board {
 		display: flex;
@@ -476,7 +580,7 @@
 		align-items: center;
 		justify-content: center;
 		border: var(--tile-border) solid var(--line);
-		border-radius: 8px;
+		border-radius: 9px;
 		font-weight: 700;
 		font-size: 1.4rem;
 	}
@@ -497,6 +601,28 @@
 		background: var(--miss);
 		border-color: var(--miss);
 		color: white;
+	}
+	/* The answer to a day that's already over: on the board, in the same
+	   grid as everything else, but dashed and muted so it never reads as a
+	   row someone actually played. */
+	.answer {
+		display: flex;
+		flex-direction: column;
+		gap: var(--row-gap);
+		margin-top: 0.6rem;
+	}
+	.answer-label {
+		font-size: 0.7rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		color: var(--ink-muted);
+	}
+	.tile.answer-tile {
+		border-style: dashed;
+		border-color: var(--ink-muted);
+		background: none;
+		color: var(--ink-muted);
 	}
 	.keyboard {
 		display: flex;
@@ -531,7 +657,7 @@
 		padding: 1.1rem 0.2rem;
 		border: none;
 		box-sizing: border-box;
-		border-radius: 8px;
+		border-radius: 9px;
 		background: var(--key-bg);
 		color: var(--ink);
 		text-transform: uppercase;
@@ -556,8 +682,11 @@
 		padding-right: 0.15rem;
 	}
 	button.enter {
-		background: var(--hit);
+		background: var(--accent);
 		color: white;
+	}
+	button.enter:hover {
+		background: var(--accent-hover);
 	}
 	button.correct {
 		background: var(--hit);
@@ -586,5 +715,53 @@
 	.message {
 		color: #b91c1c;
 		font-size: 0.85rem;
+	}
+	/* Phone: the website's game page lets the whole page scroll instead of
+	   handing this widget the viewport's height (see .board-card in
+	   g/[id]/+page.svelte), so board and keyboard have to earn their space
+	   — at full size the two together were taller than a phone screen on
+	   their own, which is what made a second, inner scroller necessary in
+	   the first place. Smaller tiles, tighter gaps, shorter keys: the same
+	   layout, roughly a third less tall, and the page scrolls as one. */
+	@media (max-width: 480px) {
+		.wordle {
+			--tile-max: 2.8rem;
+			--row-gap: 0.3rem;
+		}
+		.game-name {
+			font-size: 1.1rem;
+			margin-bottom: 0.35rem;
+		}
+		.header {
+			margin-bottom: 0.6rem;
+		}
+		.board {
+			margin-bottom: 0.6rem;
+		}
+		.keyboard {
+			gap: 0.35rem;
+			padding: 0.4rem 0 0.4rem;
+			/* Pinned to the bottom edge of the screen for as long as any part of
+			   the puzzle is on screen. Sticky rather than fixed on purpose: it
+			   keeps its place in the flow, so nothing is ever hidden underneath
+			   it, and it doesn't sit on top of whatever else the page has below
+			   the game. This is why the board scrolls with the page instead of
+			   inside its own pane — the keyboard staying put was the thing that
+			   layout was for, and it has to hold now that the page owns the
+			   scroll. */
+			position: sticky;
+			bottom: 0;
+			z-index: 2;
+		}
+		.krow {
+			gap: 0.25rem;
+		}
+		button {
+			padding: 0.85rem 0.2rem;
+			font-size: 1rem;
+		}
+		.hard-mode {
+			margin: -0.3rem 0 0.5rem;
+		}
 	}
 </style>

@@ -11,9 +11,11 @@
 		query: string;
 		/** Path the search form and pagination links submit/point to — pass a resolve()d route. */
 		basePath: ResolvedPathname;
+		/** Passed straight to GameList — null when nobody's signed in. */
+		favoriteIds?: string[] | null;
 	}
 
-	let { games, total, page, pageSize, query, basePath }: Props = $props();
+	let { games, total, page, pageSize, query, basePath, favoriteIds = null }: Props = $props();
 
 	const totalPages = $derived(Math.max(1, Math.ceil(total / pageSize)));
 
@@ -37,7 +39,11 @@
 		<button type="submit" class="btn btn-secondary">Search</button>
 	</form>
 
-	<GameList {games} emptyMessage={query ? `No games match "${query}".` : 'No games yet.'} />
+	<GameList
+		{games}
+		{favoriteIds}
+		emptyMessage={query ? `No games match "${query}".` : 'No games yet.'}
+	/>
 
 	{#if totalPages > 1}
 		<nav class="pagination">

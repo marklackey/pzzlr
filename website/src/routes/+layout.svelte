@@ -44,6 +44,7 @@
 			<div class="nav-links">
 				<a href={resolve('/explore')}>Explore</a>
 				{#if data.user}
+					<a href={resolve('/favorites')}>Favorites</a>
 					<a href={resolve('/games')}>My games</a>
 				{/if}
 			</div>
@@ -86,6 +87,9 @@
 			<div class="menu" id="site-menu">
 				<a class="menu-link narrow-only" href={resolve('/explore')} onclick={closeMenu}>Explore</a>
 				{#if data.user}
+					<a class="menu-link narrow-only" href={resolve('/favorites')} onclick={closeMenu}>
+						Favorites
+					</a>
 					<a class="menu-link narrow-only" href={resolve('/games')} onclick={closeMenu}>My games</a>
 					<a class="menu-link" href={resolve('/account')} onclick={closeMenu}>Account</a>
 				{/if}

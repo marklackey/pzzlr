@@ -12,7 +12,11 @@
 			{data.games.length === 0 ? 'Create a game' : 'Create another'}
 		</a>
 	</div>
-	<GameList games={data.games} emptyMessage="You haven't created any games yet." />
+	<GameList
+		games={data.games}
+		favoriteIds={data.favoriteIds}
+		emptyMessage="You haven't created any games yet."
+	/>
 </div>
 
 <style>

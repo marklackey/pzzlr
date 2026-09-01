@@ -1,36 +1,66 @@
 :root {
 	--font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 
-	--color-bg: #f7f6f2;
+	/* Warm neutrals rather than grey ones: the whole surface reads as paper,
+	   which is what lets the few saturated colours below carry meaning
+	   instead of competing with a cold background. */
+	--color-bg: #f6f4ef;
 	--color-surface: #ffffff;
-	--color-text: #201d2b;
-	--color-text-muted: #6b6578;
-	--color-primary: #7c3aed;
-	--color-primary-hover: #6d28d9;
-	--color-primary-contrast: #ffffff;
-	--color-border: #e4e1db;
-	--color-success: #15803d;
-	--color-success-bg: #dcfce7;
-	--color-error: #b91c1c;
-	--color-error-hover: #991b1b;
-	--color-error-bg: #fee2e2;
+	/* One step down from a surface — for insets and anything that should
+	   read as a well rather than a card. */
+	--color-sunk: #f0ece4;
+	--color-text: #1b1922;
+	--color-text-muted: #6d6878;
+	--color-border: #e4dfd6;
+	--color-border-strong: #cfc7b8;
 
-	--radius-sm: 6px;
+	/* Deep indigo, not the neon violet this started as. Saturated enough to
+	   be the brand, dark enough to sit under body text without shouting. */
+	--color-primary: #4b3f9e;
+	--color-primary-hover: #3c3382;
+	--color-primary-soft: #ece9f8;
+	--color-primary-contrast: #ffffff;
+
+	/* The warm counterweight. Used sparingly and never for navigation — a
+	   favourited star, a number worth finding — so that a second colour
+	   reads as emphasis rather than as a second brand. */
+	--color-accent: #bf6d38;
+	--color-accent-soft: #f7ece2;
+
+	/* One hue per game type. The badge on a listing, the accent inside the
+	   widget, and the type's own colour anywhere else are all this, so a
+	   ladder looks like a ladder at a glance and the site stops being one
+	   purple. */
+	--color-ladder: #5a49b5;
+	--color-wordle: #2f7a5e;
+	--color-quordle: #2b6d8f;
+	--color-absurdle: #a8543f;
+
+	--color-success: #2f7a5e;
+	--color-success-bg: #e4f0ea;
+	--color-error: #a33a32;
+	--color-error-hover: #8a3029;
+	--color-error-bg: #f8e8e6;
+
+	--radius-sm: 7px;
 	--radius-md: 12px;
-	--shadow-sm: 0 1px 2px rgba(32, 29, 43, 0.06);
-	--shadow-md: 0 6px 20px rgba(32, 29, 43, 0.08);
+	--radius-lg: 18px;
+	/* Warm-tinted rather than neutral black, so a raised card still looks
+	   like it's sitting on paper. */
+	--shadow-sm: 0 1px 2px rgba(41, 33, 24, 0.05);
+	--shadow-md: 0 8px 24px -12px rgba(41, 33, 24, 0.18);
+	--shadow-lg: 0 20px 48px -24px rgba(41, 33, 24, 0.28);
 
 	--space-1: 0.25rem;
 	--space-2: 0.5rem;
 	--space-3: 0.75rem;
 	--space-4: 1rem;
+	--space-5: 1.25rem;
 	--space-6: 1.5rem;
 	--space-8: 2rem;
+	--space-10: 2.5rem;
+	--space-12: 3rem;
 
-	/* Height of the top nav bar (see .nav-inner in +layout.svelte, which
-	   enforces it). Shared so a page can size itself against the viewport
-	   minus the nav — the game page uses it to sit its keyboard on the
-	   bottom edge of the screen. */
 	--nav-h: 3.25rem;
 }
 
@@ -43,15 +73,23 @@ body {
 	font-family: var(--font-sans);
 	background: var(--color-bg);
 	color: var(--color-text);
-	line-height: 1.55;
+	line-height: 1.6;
+	/* Warm greys render thin and patchy without this on macOS. */
+	-webkit-font-smoothing: antialiased;
 }
 
 h1,
 h2,
 h3 {
-	line-height: 1.2;
+	line-height: 1.15;
 	margin: 0 0 0.5em;
 	font-weight: 700;
+	/* Display type reads tighter than body type at the same tracking. */
+	letter-spacing: -0.015em;
+}
+
+h1 {
+	font-size: 1.9rem;
 }
 
 p {
@@ -70,7 +108,7 @@ a:hover {
 .container {
 	max-width: 40rem;
 	margin: 0 auto;
-	padding: var(--space-8) var(--space-4);
+	padding: var(--space-10) var(--space-5);
 	width: 100%;
 	box-sizing: border-box;
 }
@@ -126,9 +164,9 @@ a:hover {
 .card {
 	background: var(--color-surface);
 	border: 1px solid var(--color-border);
-	border-radius: var(--radius-md);
+	border-radius: var(--radius-lg);
 	box-shadow: var(--shadow-sm);
-	padding: var(--space-4);
+	padding: var(--space-5);
 }
 
 .btn {
@@ -136,7 +174,7 @@ a:hover {
 	align-items: center;
 	justify-content: center;
 	gap: var(--space-2);
-	padding: 0.55rem 1rem;
+	padding: 0.6rem 1.1rem;
 	border-radius: var(--radius-sm);
 	border: 1px solid transparent;
 	font: inherit;
@@ -170,8 +208,16 @@ a:hover {
 }
 
 .btn-secondary:hover {
-	border-color: var(--color-primary);
+	border-color: var(--color-border-strong);
+	background: var(--color-sunk);
 	text-decoration: none;
+}
+
+.btn:focus-visible,
+a:focus-visible {
+	outline: 2px solid var(--color-primary);
+	outline-offset: 2px;
+	border-radius: var(--radius-sm);
 }
 
 .btn-danger {
@@ -187,7 +233,7 @@ a:hover {
 label {
 	display: flex;
 	flex-direction: column;
-	gap: var(--space-1);
+	gap: var(--space-2);
 	font-size: 0.9rem;
 	font-weight: 600;
 	color: var(--color-text);
@@ -196,11 +242,17 @@ label {
 input,
 select {
 	font: inherit;
-	padding: 0.5rem 0.65rem;
-	border: 1px solid var(--color-border);
+	padding: 0.55rem 0.7rem;
+	border: 1px solid var(--color-border-strong);
 	border-radius: var(--radius-sm);
 	background: var(--color-surface);
 	color: var(--color-text);
+	transition: border-color 0.15s;
+}
+
+input:hover,
+select:hover {
+	border-color: var(--color-text-muted);
 }
 
 input:focus,
@@ -211,12 +263,29 @@ select:focus {
 
 .badge {
 	display: inline-block;
-	padding: 0.15rem 0.55rem;
+	padding: 0.2rem 0.6rem;
 	border-radius: 999px;
 	background: var(--color-primary);
 	color: var(--color-primary-contrast);
-	font-size: 0.75rem;
-	font-weight: 600;
+	font-size: 0.7rem;
+	font-weight: 700;
+	letter-spacing: 0.03em;
+	text-transform: uppercase;
+}
+
+/* Game type carries its own colour wherever it appears — see the mode hues
+   in :root. */
+.badge-ladder {
+	background: var(--color-ladder);
+}
+.badge-wordle {
+	background: var(--color-wordle);
+}
+.badge-quordle {
+	background: var(--color-quordle);
+}
+.badge-absurdle {
+	background: var(--color-absurdle);
 }
 
 .error-text {

@@ -1,6 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { listGamesByOwner } from '$lib/server/db/games';
+import { favoriteIdsIn } from '$lib/server/db/favorites';
 
 // A signed-out visitor is sent to /create rather than shown an empty shelf
 // or a sign-in form: this page's old job — explaining to someone without an
@@ -10,5 +11,14 @@ export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) {
 		redirect(302, '/create');
 	}
-	return { games: await listGamesByOwner(locals.user.id) };
+	const games = await listGamesByOwner(locals.user.id);
+	return {
+		games,
+		favoriteIds: [
+			...(await favoriteIdsIn(
+				locals.user.id,
+				games.map((game) => game.id)
+			))
+		]
+	};
 };

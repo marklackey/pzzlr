@@ -1,4 +1,4 @@
-import { integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { integer, primaryKey, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { HARD_MODES, DEFAULT_HARD_MODE } from '$lib/types';
 import { user } from './auth.schema';
 
@@ -156,6 +156,37 @@ export const puzzleAttempt = sqliteTable(
 		// browser tab could fork into two "true" attempts for the same play.
 		uniqueIndex('puzzle_attempt_game_date_token_idx').on(table.gameId, table.date, table.token)
 	]
+);
+
+/**
+ * One row per (account holder, game) they've starred. Keyed on the pair
+ * rather than a surrogate id: favouriting is idempotent — a second star on
+ * the same game is the same fact, not a second one — and the composite
+ * primary key is what makes that true in the database rather than only in
+ * the code that writes to it.
+ *
+ * Both sides cascade. A deleted game shouldn't leave stars pointing at
+ * nothing, and a closed account shouldn't leave its shelf behind.
+ *
+ * Unlike puzzle_attempt, which is keyed by an anonymous client-minted token
+ * because the embedded widget has no login, this is deliberately tied to a
+ * user id: a favourite is a thing you come back to across devices, which is
+ * exactly what an account is for.
+ */
+export const favorite = sqliteTable(
+	'favorite',
+	{
+		userId: text('user_id')
+			.notNull()
+			.references(() => user.id, { onDelete: 'cascade' }),
+		gameId: text('game_id')
+			.notNull()
+			.references(() => gameConfig.id, { onDelete: 'cascade' }),
+		createdAt: integer('created_at', { mode: 'timestamp' })
+			.notNull()
+			.$defaultFn(() => new Date())
+	},
+	(table) => [primaryKey({ columns: [table.userId, table.gameId] })]
 );
 
 export * from './auth.schema';

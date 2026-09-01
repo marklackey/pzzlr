@@ -25,3 +25,16 @@ export function puzzleDate(now: Date = new Date()): string {
 		day: '2-digit'
 	}).format(now);
 }
+
+/**
+ * `date` moved by `days` (negative for earlier), still YYYY-MM-DD.
+ *
+ * Done in UTC on purpose. These are calendar dates, not moments — the
+ * timezone above decides which date "now" falls on, and once that's
+ * settled, stepping back a day is plain arithmetic that daylight saving
+ * must not be allowed to shift by an hour and round the wrong way.
+ */
+export function shiftDate(date: string, days: number): string {
+	const shifted = new Date(Date.parse(`${date}T00:00:00Z`) + days * 24 * 60 * 60 * 1000);
+	return shifted.toISOString().slice(0, 10);
+}

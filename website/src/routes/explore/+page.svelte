@@ -11,5 +11,6 @@
 	page={data.page}
 	pageSize={data.pageSize}
 	query={data.query}
+	favoriteIds={data.favoriteIds}
 	basePath={resolve('/explore')}
 />
