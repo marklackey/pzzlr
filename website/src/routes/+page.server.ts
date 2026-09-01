@@ -1,29 +1,16 @@
+import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { listGames } from '$lib/server/db/games';
 
-const PAGE_SIZE = 10;
-
-// Logged-out visitors land on the game index (paginated/searchable) instead
-// of a single hardcoded board — Explore *is* the anonymous homepage now.
-// Signed-in users still get the "here's the embed" demo, since they're the
-// ones who'd actually go create a game next.
-export const load: PageServerLoad = async ({ locals, url }) => {
-	if (!locals.user) {
-		const query = url.searchParams.get('q')?.trim() || undefined;
-		const page = Math.max(1, Number(url.searchParams.get('page')) || 1);
-		const { games, total } = await listGames({ query, page, pageSize: PAGE_SIZE });
-		return {
-			mode: 'explore' as const,
-			games,
-			total,
-			page,
-			pageSize: PAGE_SIZE,
-			query: query ?? ''
-		};
-	}
-
-	// +page.svelte renders whichever mode this game actually is, so any
-	// public game works here — no mode filter needed.
-	const { games } = await listGames({ pageSize: 1 });
-	return { mode: 'demo' as const, game: games[0] ?? null };
+/**
+ * The front door hands you whichever list is actually yours: the games
+ * you've made when you're signed in, everyone's when you're not.
+ *
+ * It used to be a demo board with an explanation of the embed attached —
+ * a page to read rather than a place to go, and for a signed-in player it
+ * stood between them and their own games every time they clicked the logo.
+ * A redirect rather than a copy of either list, so each of those pages
+ * keeps one address.
+ */
+export const load: PageServerLoad = ({ locals }) => {
+	redirect(302, locals.user ? '/games' : '/explore');
 };

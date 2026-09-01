@@ -334,7 +334,11 @@
 				</div>
 			{/if}
 
-			<div class="board" bind:this={boardEl}>
+			<div
+				class="board"
+				class:revealed={revealedWords.length > 0}
+				bind:this={boardEl}
+			>
 				{#each Array.from({ length: maxGuesses }) as _, rowIndex (rowIndex)}
 					<div class="row" bind:this={rowEls[rowIndex]}>
 						{#if rowIndex < guesses.length}
@@ -570,6 +574,14 @@
 	   between — so it doesn't depend on whatever the heading above happens to
 	   measure. Rows shorter than --tile-max (long words squeeze the tiles)
 	   just leave slack: a stable board area, not a snug one. */
+	/* A revealed board isn't being played on any more, so it has no reason
+	   to hold itself to a fixed number of rows — and every reason not to,
+	   since the answer is drawn after the last one and a scrollbar is a poor
+	   way to announce it. */
+	.board.revealed {
+		height: auto;
+		overflow: visible;
+	}
 	@media (min-width: 481px) {
 		.board {
 			height: calc(

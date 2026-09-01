@@ -29,6 +29,23 @@
 			.filter(Boolean)
 	);
 
+	/**
+	 * The revealed ladder, minus the word it starts on.
+	 *
+	 * The path runs from the puzzle's start word, which is already the top
+	 * row of the board, so drawing it again would show the same word twice.
+	 * That one word and no other: a given rung belongs in the answer even
+	 * though it's also on the board, because the answer is the whole ladder
+	 * and reading it shouldn't mean stitching two lists together.
+	 *
+	 * Measured against the puzzle's own start rather than anything on the
+	 * board, because the answer has nothing to do with what anyone guessed
+	 * — it's the same ladder whether they played it or not.
+	 */
+	const answerRows = $derived(
+		revealedWords[0] === start ? revealedWords.slice(1) : revealedWords
+	);
+
 	type Status = 'loading' | 'playing' | 'won' | 'error';
 
 	let status = $state<Status>('loading');
@@ -232,7 +249,11 @@
 				<span class="target">Spell <strong>{end.toUpperCase()}</strong>!</span>
 			</div>
 
-			<div class="board" bind:this={boardEl}>
+			<div
+				class="board"
+				class:revealed={revealedWords.length > 0}
+				bind:this={boardEl}
+			>
 				{#each rows as word, rowIndex (rowIndex)}
 					<div class="row">
 						{#each Array.from({ length: puzzleLength }) as _, i (i)}
@@ -252,8 +273,13 @@
 
 				{#if revealedWords.length > 0}
 					<div class="answer">
-						<span class="answer-label">Answer</span>
-						{#each revealedWords as word, wordIndex (wordIndex)}
+						<!-- Counted the way the rest of the app counts a ladder: every
+						     word from start to target, which is what "minimum steps"
+						     on a game means (see the create form). So the number can
+						     be one more than the rows drawn below it, since the start
+						     is already up there. -->
+						<span class="answer-label">Answer · {revealedWords.length} steps</span>
+						{#each answerRows as word, wordIndex (wordIndex)}
 							<div class="row">
 								{#each Array.from({ length: puzzleLength }) as _, i (i)}
 									<!-- The same tile a played rung uses, matched letters and
@@ -404,6 +430,14 @@
 	   put from first paint and scrolls anything past that. The arithmetic is
 	   the rows themselves — tile, its two borders, and the gaps between — so
 	   it doesn't depend on whatever the heading above happens to measure. */
+	/* A revealed board isn't being played on any more, so it has no reason
+	   to hold itself to a fixed number of rows — and every reason not to,
+	   since the answer is drawn after the last one and a scrollbar is a poor
+	   way to announce it. */
+	.board.revealed {
+		height: auto;
+		overflow: visible;
+	}
 	@media (min-width: 481px) {
 		.board {
 			height: calc(
