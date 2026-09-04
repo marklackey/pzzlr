@@ -226,18 +226,14 @@
 		</div>
 	</section>
 
-	<!-- The last thing on the page is the first thing it asked for. -->
+	<!-- The last thing on the page is the first thing it asked for. No
+	     heading or pitch above it: the page has just spent five sections
+	     making the case, and the buttons say where each one goes. -->
 	<section class="section closer">
 		<div class="section-inner">
-			<h2>Pick a word and see what it makes</h2>
-			<p class="section-lead">
-				A game takes about a minute to set up, and plays for as long as you keep it.
-			</p>
 			<div class="hero-actions">
-				<a class="btn btn-primary btn-lg" href={resolve('/create')}>
-					{data.user ? 'Create another game' : 'Create a game'}
-				</a>
-				<a class="btn btn-secondary btn-lg" href={resolve('/explore')}>Browse what people made</a>
+				<a class="btn btn-primary btn-lg" href={resolve('/create')}>Create a game</a>
+				<a class="btn btn-secondary btn-lg" href={resolve('/explore')}>Browse public games</a>
 			</div>
 		</div>
 	</section>
@@ -480,12 +476,6 @@
 		margin: var(--space-8) 0 0;
 	}
 
-	.closer {
-		text-align: center;
-	}
-	.closer .section-lead {
-		margin-inline: auto;
-	}
 	.closer .hero-actions {
 		justify-content: center;
 	}
