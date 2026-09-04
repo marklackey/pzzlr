@@ -106,6 +106,9 @@
 					<a class="menu-link" href={resolve('/create')} onclick={closeMenu}>Create a game</a>
 					<a class="menu-link" href={resolve('/account')} onclick={closeMenu}>Account</a>
 				{/if}
+				<!-- Shown to everyone: the signed-in player already knows what Pzzlr
+				     is, but this is also where someone sends a link to explain it. -->
+				<a class="menu-link" href={resolve('/about')} onclick={closeMenu}>About</a>
 				<a class="menu-link" href={resolve('/support')} onclick={closeMenu}>Support</a>
 				<a class="menu-link" href={resolve('/privacy')} onclick={closeMenu}>Privacy</a>
 				<a class="menu-link" href={resolve('/terms')} onclick={closeMenu}>Terms</a>

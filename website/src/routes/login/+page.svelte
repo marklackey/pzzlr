@@ -22,7 +22,7 @@
 		error = '';
 		const { error: signInError } = await authClient.signIn.social({
 			provider,
-			callbackURL: '/create'
+			callbackURL: '/games'
 		});
 		if (signInError) {
 			error = `${provider} sign-in failed: ${signInError.message ?? 'not configured on this server'}`;
@@ -35,8 +35,8 @@
 		loading = true;
 		const { error: authError } =
 			mode === 'signin'
-				? await authClient.signIn.email({ email, password, callbackURL: '/create' })
-				: await authClient.signUp.email({ email, password, name, callbackURL: '/create' });
+				? await authClient.signIn.email({ email, password, callbackURL: '/games' })
+				: await authClient.signUp.email({ email, password, name, callbackURL: '/games' });
 		loading = false;
 		if (authError) {
 			// Signing in unverified isn't a failure to explain away — the
@@ -51,12 +51,16 @@
 			return;
 		}
 		// Sign-up leaves no session to use yet; sign-in does, and lands on the
-		// page it was probably reached from.
+		// shelf rather than on the create form — the same destination every
+		// other way in uses, and the same one the front door sends a
+		// signed-in visitor to. Making a game is a button away from there,
+		// and someone signing back in is usually returning to games they
+		// already have rather than starting another.
 		if (mode === 'signup') {
 			awaitingVerification = email;
 			return;
 		}
-		location.href = resolve('/create');
+		location.href = resolve('/games');
 	}
 
 	async function resend() {
@@ -64,7 +68,7 @@
 		loading = true;
 		const { error: authError } = await authClient.sendVerificationEmail({
 			email: awaitingVerification,
-			callbackURL: '/create'
+			callbackURL: '/games'
 		});
 		loading = false;
 		if (authError) error = authError.message ?? 'could not send that again';

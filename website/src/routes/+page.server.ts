@@ -1,16 +1,18 @@
-import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
 /**
- * The front door hands you whichever list is actually yours: the games
- * you've made when you're signed in, everyone's when you're not.
+ * The front door is the landing page for everyone, signed in or not.
  *
- * It used to be a demo board with an explanation of the embed attached —
- * a page to read rather than a place to go, and for a signed-in player it
- * stood between them and their own games every time they clicked the logo.
- * A redirect rather than a copy of either list, so each of those pages
- * keeps one address.
+ * It used to redirect a signed-in visitor to /games, on the reasoning that
+ * the logo shouldn't stand between a player and their own shelf. That was
+ * right when this page was a demo board with an embed explainer attached —
+ * a page to read rather than a place to go — but the logo is the way home,
+ * and home should be reachable. The shelf keeps its own address, its place
+ * in the nav, and every route out of signing in.
+ *
+ * Nothing here needs the user: the layout already loads it, and the page
+ * reads it from there to decide which pair of buttons the hero offers.
  */
-export const load: PageServerLoad = ({ locals }) => {
-	redirect(302, locals.user ? '/games' : '/explore');
+export const load: PageServerLoad = () => {
+	return {};
 };

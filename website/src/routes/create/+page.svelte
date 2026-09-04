@@ -11,8 +11,8 @@
 
 	{#if !data.signedIn}
 		<!-- What the form would let them do, for someone who can't use it yet.
-		     Sign-in returns here (see /login), so this is the start of making
-		     a game rather than a detour away from it. -->
+		     Sign-in lands on /games rather than back here, so this is a pitch
+		     that ends with an account, not a form that pauses for one. -->
 		<div class="card signed-out">
 			<p class="lead">Make your own word games.</p>
 			<p>
