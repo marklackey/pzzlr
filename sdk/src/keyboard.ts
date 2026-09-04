@@ -48,6 +48,15 @@ function isTextEntry(node: unknown): boolean {
 	return false;
 }
 
+// A keystroke aimed at a focused button is that button's own press: the
+// browser turns Enter into a click on it. Handling it here as well runs the
+// press twice — and since the on-screen Enter key is a button a player can
+// leave focused by clicking it, that meant one Enter submitting the same
+// guess twice. Let the button have it.
+function activatesFocusedButton(e: KeyboardEvent, target: unknown): boolean {
+	return e.key === 'Enter' && target instanceof HTMLButtonElement;
+}
+
 export function createKeyboardHandlers(binding: GuessInputBinding) {
 	function typeLetter(letter: string) {
 		if (!binding.isActive()) return;
@@ -68,7 +77,9 @@ export function createKeyboardHandlers(binding: GuessInputBinding) {
 		// composedPath() sees through a shadow root, so an input inside one
 		// on the host page is recognised as well; e.target would have been
 		// retargeted to its host element by the time it reaches the window.
-		if (isTextEntry(e.composedPath?.()[0] ?? e.target)) return;
+		const target = e.composedPath?.()[0] ?? e.target;
+		if (isTextEntry(target)) return;
+		if (activatesFocusedButton(e, target)) return;
 		if (e.key === 'Enter') {
 			binding.submit();
 		} else if (e.key === 'Backspace') {

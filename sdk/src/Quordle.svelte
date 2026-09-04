@@ -56,6 +56,11 @@
 	let guesses = $state<string[]>([]);
 	let boardResults = $state<LetterResult[][][]>([]);
 	let boardSolvedAt = $state<(number | null)[]>([]);
+	// Whether the win happened on a board, under this player's hands, as
+	// opposed to arriving already won from a resumed attempt. Only a win they
+	// watched land is worth animating; replaying the flourish on every reload
+	// of a finished board would be a flourish about nothing.
+	let solvedLive = $state<boolean[]>([]);
 	let revealedTargets = $state<string[]>([]);
 	let currentGuess = $state('');
 	let message = $state('');
@@ -124,6 +129,7 @@
 				resumed?.boardResults ?? Array.from({ length: boardCount }, () => []);
 			// Which guess solved each board falls out of the rows themselves —
 			// the first all-correct one — so there's nothing extra to store.
+			solvedLive = [];
 			boardSolvedAt = boardResults.map((rows) => {
 				const index = rows.findIndex(rowSolves);
 				return index === -1 ? null : index + 1;
@@ -192,6 +198,9 @@
 			...rows,
 			result.results[i]
 		]);
+		solvedLive = boardSolvedAt.map(
+			(solvedAt: number | null, i: number) => solvedAt === null && result.solved[i]
+		);
 		boardSolvedAt = boardSolvedAt.map((solvedAt: number | null, i: number) =>
 			solvedAt === null && result.solved[i] ? guessIndex : solvedAt
 		);
@@ -203,6 +212,15 @@
 			status = 'finished';
 			await reveal();
 		}
+	}
+
+	// A tapped key shouldn't keep the focus: a player who clicks their way
+	// through a word and then reaches for Enter on their own keyboard would
+	// otherwise press whichever key they last clicked as well. Preventing the
+	// mousedown default stops the button taking focus without stopping the
+	// click, and leaves tabbing to the keys working as it did.
+	function keepFocusOffKeys(e: MouseEvent) {
+		e.preventDefault();
 	}
 
 	const { typeLetter, backspace, handleKeydown } = createKeyboardHandlers({
@@ -313,7 +331,10 @@
 				<span class="guess-count">{guesses.length}/{maxGuesses} guesses</span>
 			</div>
 
-			<div class="boards">
+			<!-- --tiles is a word's length, inherited by every row under here:
+			     the reveal animation's geometry is written in terms of how many
+			     tiles a word is (see .row.answer-row in the styles). -->
+			<div class="boards" style="--tiles: {wordLength}">
 				{#each Array.from({ length: boardCount }) as _, i (i)}
 					<div class="board" class:solved={boardSolvedAt[i] !== null}>
 						<div class="board-rows" bind:this={boardRowsEls[i]}>
@@ -321,7 +342,14 @@
 								{#if boardSolvedAt[i] !== null && rowIndex >= boardSolvedAt[i]}
 									<!-- board is done — no further rows -->
 								{:else if rowIndex < boardResults[i].length}
-									<div class="row" bind:this={rowEls[i][rowIndex]}>
+									<!-- The guess that finished this board is its answer, found
+									     rather than given — so it opens the way a revealed one
+									     does. -->
+									<div
+										class="row"
+										class:just-solved={solvedLive[i] && boardSolvedAt[i] === rowIndex + 1}
+										bind:this={rowEls[i][rowIndex]}
+									>
 										{#each boardResults[i][rowIndex] as { letter, status: s }, li (li)}
 											<div class="tile filled {s}">{letter.toUpperCase()}</div>
 										{/each}
@@ -330,7 +358,11 @@
 									<!-- The day's answer for this board, in the row a guess
 									     would have gone in and scored the way a solving guess
 									     scores. -->
-									<div class="row" bind:this={rowEls[i][rowIndex]}>
+									<div
+										class="row answer-row"
+										style="--row-index: {i}"
+										bind:this={rowEls[i][rowIndex]}
+									>
 										{#each Array.from({ length: wordLength }) as _, li (li)}
 											<div class="tile filled correct">
 												{revealedWords[i][li]?.toUpperCase() ?? ''}
@@ -381,13 +413,28 @@
 					<div class="krow">
 						{#each krow as key (key)}
 							{#if key === 'enter'}
-								<button type="button" class="wide enter" onclick={submitGuess}>ENTER</button>
+								<button
+									type="button"
+									class="wide enter"
+									onmousedown={keepFocusOffKeys}
+									onclick={submitGuess}
+								>
+									ENTER
+								</button>
 							{:else if key === 'back'}
-								<button type="button" class="wide" onclick={backspace}>&#9003;</button>
+								<button
+									type="button"
+									class="wide"
+									onmousedown={keepFocusOffKeys}
+									onclick={backspace}
+								>
+									&#9003;
+								</button>
 							{:else}
 								<button
 									type="button"
 									class={keyStatus(key)}
+									onmousedown={keepFocusOffKeys}
 									onclick={() => typeLetter(key)}
 								>
 									{key}
@@ -542,6 +589,53 @@
 	}
 	.tile.input {
 		border-color: #b3aed6;
+	}
+	/* The answer opens as one circle growing out of the middle of the word,
+	   rather than flipping letter by letter: the whole word arrives as a
+	   single shape, so it reads at once instead of being spelled out.
+	   clip-path doesn't touch layout, so the row holds its space the whole
+	   time and nothing under it moves while the circle grows. Each board's
+	   circle starts a beat after the one before it, so four answers land as a
+	   sequence rather than a flash. */
+	@keyframes answer-open {
+		from {
+			clip-path: circle(0px at var(--word-center) 50%);
+		}
+		to {
+			clip-path: circle(var(--word-radius) at var(--word-center) 50%);
+		}
+	}
+	.row.answer-row,
+	.row.just-solved {
+		/* The row is as wide as the board, but the word in it is only as wide
+		   as its tiles, which stop growing at --tile-size — so the middle of
+		   the row isn't the middle of the word, and a circle centred on the
+		   row would open off to one side of it. Each min() below says the
+		   same thing twice: first for a row the tiles have filled (a narrow
+		   board, where the word is the row), then for one they haven't (a
+		   wide board, where the word is --tiles capped tiles and the gaps
+		   between them).
+
+		   The radius has to reach the corners of a row of squares, which is
+		   a little over half the word's width — 0.55 covers it from three
+		   letters up. Written as a percentage it's 75%: percentages in a
+		   radius mean sqrt((w² + h²) / 2) of the box, not its width.
+		   A tile's cap is on its content box, so a full-width tile is that
+		   plus its two borders. */
+		--word-width: calc(
+			var(--tiles) * (var(--tile-size) + 2 * var(--tile-border)) +
+			(var(--tiles) - 1) * 0.3rem
+		);
+		--word-center: min(50%, calc(var(--word-width) / 2));
+		--word-radius: min(75%, calc(var(--word-width) * 0.55));
+		animation: answer-open 1000ms cubic-bezier(0.4, 0, 0.2, 1)
+			calc(var(--row-index, 0) * 130ms) both;
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.row.answer-row,
+		.row.just-solved {
+			animation: none;
+		}
 	}
 	.tile.filled.correct {
 		background: var(--hit);
