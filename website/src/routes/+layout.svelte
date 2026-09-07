@@ -241,12 +241,15 @@
 		cursor: default;
 	}
 	.nav-inner {
-		/* Wider than .container's 40rem column — the bar is chrome, so the
-		   brand sits at the left edge and the actions at the right rather than
-		   bunching in the middle of the page — but still capped, so on a very
-		   wide screen they don't drift to opposite ends of the desk. */
+		/* Matched to the landing page's 62rem band, which is the widest column
+		   on the site — so the bar lines up with the content there and every
+		   narrower page (.container's 40rem, prose's 44rem, the forms) nests
+		   inside it. It was 80rem, wider than anything it sat above, which
+		   read as the chrome belonging to a different, larger page. Still
+		   capped rather than full-bleed so the brand and the actions don't
+		   drift to opposite ends of a wide desk. */
 		width: 100%;
-		max-width: 80rem;
+		max-width: 62rem;
 		margin: 0 auto;
 		/* --nav-h (app.css) is the shared source of truth for how tall this
 		   bar is, so a page can size itself against "the viewport minus the
