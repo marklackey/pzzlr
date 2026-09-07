@@ -1,6 +1,6 @@
 ---
 name: pzzlr-dev
-description: Dev workflow reference for the pzzlr word-ladder repo (graphbuilder/ Go tool, sdk/ embeddable Svelte widget, website/ SvelteKit app). Use this whenever working in this repo and the task involves starting the dev server, running tests (vitest or go test), type/lint checks, regenerating word graphs from the ESDB word list (including the 50/60/80 dictionary size tiers), building or syncing the SDK widget into the website, Drizzle/SQLite DB commands (push/generate/migrate/studio/seed), smoke-testing a game's daily-puzzle API endpoint, or visually QA-ing an auth-gated or rare-scenario page. Trigger even if the user doesn't name these commands explicitly — e.g. "run the tests", "the graphs seem stale", "check today's puzzle for game X", "wire up the new SDK build", "reset my local db", "add a smaller dictionary option".
+description: Dev workflow reference for the pzzlr word-ladder repo (graphbuilder/ Go tool, sdk/ embeddable Svelte widget, website/ SvelteKit app). Use this whenever working in this repo and the task involves starting the dev server, running tests (vitest or go test), type/lint checks, regenerating word graphs from the ESDB word list (including the 50/60/80 dictionary size tiers), building or syncing the SDK widget into the website, Cloudflare D1 database commands (generate/migrate/seed, local or remote), smoke-testing a game's daily-puzzle API endpoint, or visually QA-ing an auth-gated or rare-scenario page. Trigger even if the user doesn't name these commands explicitly — e.g. "run the tests", "the graphs seem stale", "check today's puzzle for game X", "wire up the new SDK build", "reset my local db", "add a smaller dictionary option".
 ---
 
 # pzzlr dev workflows
@@ -62,17 +62,46 @@ cd ../website && npm run sync-sdk
 
 **Any new embeddable API route needs adding to `EMBED_ROUTES` in `website/src/hooks.server.ts`.** That regex allowlist is what attaches permissive CORS headers — miss it and the route works fine same-origin (so it's easy not to notice in normal dev testing) but silently fails cross-origin, breaking the widget on any real third-party embed page. This bit us once already: adding `/api/games/[id]/guess` and deleting the old generic `/api/ladder/guess` required updating this list too, not just adding the route file.
 
-## Database (Drizzle / SQLite)
+## Database (Cloudflare D1 / Drizzle)
 
-All from `website/`, and all need `DATABASE_URL` set (copy `.env.example` to `.env` if it doesn't exist yet — `file:local.db` is the default local path):
+The database is Cloudflare D1, which is only reachable through the Workers
+runtime — there is no connection string and no `DATABASE_URL`. `getDb()` in
+`src/lib/server/db/index.ts` wraps the `DB` binding declared in
+`wrangler.jsonc`, and that binding only exists once a request is actually in
+flight, so every command below goes through `wrangler` rather than a plain
+Node script. All from `website/`:
 
-- `npm run db:push` — push schema straight to the DB, no migration file (fast local iteration).
-- `npm run db:generate` — write a migration file from schema changes.
-- `npm run db:migrate` — apply migration files.
-- `npm run db:studio` — Drizzle Studio, a local GUI for browsing the DB.
-- `npm run db:seed` — (re)seeds the `demo` game (`target: "poop"`, length 4, minSteps 4) via `scripts/seed.ts`. Safe to re-run — it's an upsert (`onConflictDoUpdate`) keyed on id `"demo"`.
+- `npm run db:generate` — write a migration file into `migrations/` from
+  `schema.ts` changes. This is drizzle-kit generating SQL only; it never
+  touches a live database (see the comment in `drizzle.config.ts`).
+- `npm run db:migrate` — apply pending migrations to the **local** D1
+  (`wrangler d1 migrations apply pzzlr --local`).
+- `npm run db:migrate:remote` — the same against production D1.
+- `npm run db:seed` — upserts the `demo` game (`target: "poop"`, length 4,
+  minSteps 4) from `scripts/seed.sql`. Safe to re-run.
+  `db:seed:remote` does it against production.
 
-`auth:schema` regenerates `src/lib/server/db/auth.schema.ts` from `better-auth`'s config in `src/lib/server/auth.ts` — only needed after changing auth plugins/config, not a routine command.
+There is no `db:push` and no Drizzle Studio — both want a direct connection
+D1 doesn't offer. For ad-hoc reads and writes, use wrangler:
+
+```bash
+cd website && npx wrangler d1 execute pzzlr --local --command "select id, name, mode from game_config;"
+```
+
+**The local database lives in
+`website/.wrangler/state/v3/d1/miniflare-D1DatabaseObject/*.sqlite`, not in
+`website/local.db`.** That `local.db` is a leftover from the pre-D1 libsql
+setup and nothing reads it — a row inserted there with `sqlite3` is invisible
+to the dev server, which shows up as a 404 on a game you can plainly see in
+the table. Use `wrangler d1 execute --local`, or point `sqlite3` at the
+miniflare file if you want a raw shell (there may be more than one `.sqlite`
+there, one per `database_id` this repo has used — the current one is
+whichever `wrangler d1 execute` agrees with).
+
+`src/lib/server/db/auth.schema.ts` is generated from `better-auth`'s config
+in `src/lib/server/auth.ts` and checked in; there is no npm script for it
+anymore, so regenerate it with better-auth's own CLI if you change auth
+plugins or config. Not a routine command.
 
 ## Two game modes
 
@@ -95,7 +124,7 @@ Every game's "puzzle of the day" is generated on the fly, seeded from `(date, ta
 curl -s http://localhost:5173/api/games/demo/daily | python3 -m json.tool
 ```
 
-Swap `demo` for another game's id (from `game_config.id` — `db:studio` is the easiest way to look one up). Add `?date=YYYY-MM-DD` to preview a different day without waiting for it — this only overrides the date used for seeding, not `minSteps`/`rungsGiven`/`target`, which always come from the stored game config (see the comment on that route) so "today's puzzle" means the same thing for every player.
+Swap `demo` for another game's id (from `game_config.id` — the `wrangler d1 execute` query above is the easiest way to look one up). Add `?date=YYYY-MM-DD` to preview a different day without waiting for it — this only overrides the date used for seeding, not `minSteps`/`rungsGiven`/`target`, which always come from the stored game config (see the comment on that route) so "today's puzzle" means the same thing for every player.
 
 Response fields worth checking: `start`/`target` (the puzzle's two ends), `revealedRungs` (free words after `start`, length = the game's `rungsGiven`), `minSteps` (optimal path length, start through target inclusive), `puzzleNumber` (days since the epoch in `pickDailyPuzzle`, for display like "#370"). A 404 with a "could not generate a puzzle" message usually means `minSteps`/`rungsGiven` is too strict for that word length's graph — see `assertDailySolvable` in `game-input.ts`, which is meant to catch this at game-creation time instead.
 
@@ -122,12 +151,17 @@ curl -s "http://localhost:5173/api/games/<id>/wordle/reveal?token=$TOKEN" | pyth
 
 ## Visually QA-ing a scenario that needs a specific/rare game, without logging in
 
-`/create` and the "Manage this game" panel on `/g/[id]` require a signed-in session, and creating an account or signing in isn't something to do just to poke at the UI. For visual QA of a specific scenario — a particular word length, dictionary size, or mode that doesn't happen to already exist among the current games — insert a throwaway row directly into `game_config` with `sqlite3`, view it at `/g/<id>` (game pages themselves don't require auth for public games), then delete the row:
+`/create` and the "Manage this game" panel on `/g/[id]` require a signed-in session, and creating an account or signing in isn't something to do just to poke at the UI. For visual QA of a specific scenario — a particular word length, dictionary size, or mode that doesn't happen to already exist among the current games — insert a throwaway row directly into `game_config`, view it at `/g/<id>` (game pages themselves don't require auth for public games), then delete the row:
 
 ```bash
-sqlite3 website/local.db "insert into game_config (id, name, mode, target, length, dictionary_size, min_steps, rungs_given, max_guesses, public, created_at) values ('qa-probe', 'QA probe', 'ladder', 'blustery', 8, 50, 4, 1, 6, 1, unixepoch()*1000);"
+cd website && npx wrangler d1 execute pzzlr --local --command "insert into game_config (id, name, mode, target, length, dictionary_size, min_steps, rungs_given, max_guesses, public, created_at) values ('qa-probe', 'QA probe', 'ladder', 'blustery', 8, 50, 4, 1, 6, 1, unixepoch()*1000);"
 # ... view http://localhost:5173/g/qa-probe, screenshot, etc ...
-sqlite3 website/local.db "delete from game_config where id = 'qa-probe';"
+cd website && npx wrangler d1 execute pzzlr --local --command "delete from game_config where id = 'qa-probe';"
 ```
+
+Before reaching for a throwaway row, check what's already there — the local
+database usually carries one game per mode (`demo` for ladder, plus
+`wordle-test`, `quordle-test`, `absurdle-test`), which is enough for anything
+that just needs "each mode's board on screen".
 
 This is exactly how the length-8 board and both widgets' mobile layout got verified (a length-3–7 game never exercises the tightest cases). Pick a real dictionary word for `target` — it has to actually exist in that length/size's graph, or the widget's daily route 404s.
