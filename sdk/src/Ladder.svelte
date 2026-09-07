@@ -414,9 +414,9 @@
 		--accent-hover: #4a3b9b;
 		--ink: #1b1922;
 		--ink-muted: #6d6878;
-		--line: #e4dfd6;
-		--key-bg: #eeeae2;
-		--key-bg-hover: #e2dcd0;
+		--line: #e0e0e4;
+		--key-bg: #e6e6ea;
+		--key-bg-hover: #d9d9df;
 		--bg: #fff;
 		/* Row geometry, shared by the tiles themselves and by the desktop
 		   height below that reserves room for --visible-rows of them. */
@@ -725,9 +725,13 @@
 		color: var(--accent);
 		font-weight: 700;
 	}
+	/* Not a keyboard key: the base rule's padding is cut for a single glyph
+	   in a ten-across row, which leaves a two-word label pressed against the
+	   sides of its own button. */
 	button.copy {
 		background: var(--accent);
 		color: white;
+		padding: 0.7rem 1.2rem;
 	}
 	button.copy:hover {
 		background: var(--accent-hover);
