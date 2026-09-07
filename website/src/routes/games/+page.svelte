@@ -26,6 +26,9 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: var(--space-3);
+		/* The list starts here, and a button sitting right on top of the
+		   first card reads as part of it. */
+		margin-bottom: var(--space-6);
 	}
 	.header h1 {
 		margin: 0;

@@ -25,7 +25,7 @@
 	<p>
 		Each game has one puzzle a day, shared by everyone playing it, and your progress is saved as you
 		go — so reloading picks up where you left off rather than dealing a new board. A new puzzle
-		appears each day at midnight UTC.
+		appears each day at midnight US Eastern time.
 	</p>
 
 	<h3>Do I need an account to play?</h3>

@@ -52,15 +52,11 @@
 		},
 		{
 			q: 'Where do the puzzles come from?',
-			a: 'You set the rules — word length, difficulty, and how obscure the dictionary gets — and Pzzlr generates a fresh puzzle inside them each day at midnight UTC. Everyone playing that game gets the same one.'
+			a: 'You set the rules — word length, difficulty, and how obscure the dictionary gets — and Pzzlr generates a fresh puzzle inside them each day at midnight Eastern. Everyone playing that game gets the same one.'
 		},
 		{
 			q: 'Can I keep a game to myself?',
 			a: 'Yes. A private game stays off the Explore list and loads through its own embed key, so it lives on your site and nowhere else.'
-		},
-		{
-			q: 'Will it fit my site?',
-			a: 'It follows the page it lands in — a script tag and one element, no iframe, and it takes its cue from your visitor’s light or dark mode.'
 		}
 	];
 </script>
@@ -69,7 +65,7 @@
 	<title>Pzzlr — make your own daily word game</title>
 	<meta
 		name="description"
-		content="Pick a word, pick a game type, and Pzzlr builds a fresh puzzle from it every day — with a link to share and a snippet to embed it in your own site."
+		content="Pick a word, pick a game type, and Pzzlr builds a fresh puzzle from it every day — free, ad-free, and playable by anyone with the link."
 	/>
 	<meta property="og:title" content="Pzzlr — make your own daily word game" />
 	<meta
@@ -87,8 +83,8 @@
 			<p class="eyebrow">Daily word games, yours to build</p>
 			<h1>Make a word game out of any word you like</h1>
 			<p class="lead">
-				Choose a game type and a word. Pzzlr generates a fresh puzzle from it every day, gives it a
-				link anyone can play, and hands you a snippet to drop it into your own site.
+				Choose a game type and a word. Pzzlr generates a fresh puzzle from it every day and gives it
+				a link anyone can play. Free, and free of ads.
 			</p>
 			<!-- Same split the nav bar makes: someone signed in came here by
 			     the logo and wants their shelf, not an argument for an account
@@ -175,10 +171,10 @@
 				<li>
 					<span class="step-n">3</span>
 					<div>
-						<h3>Share it or embed it</h3>
+						<h3>Share it</h3>
 						<p>
-							Every game has a link of its own. Copy its snippet and the same game runs inside your
-							site — a script tag and one element, no iframe.
+							Every game has a link of its own to send to whoever you like. If you'd rather it lived
+							on your own site, it can — see <a href={resolve('/embed')}>embedding</a>.
 						</p>
 					</div>
 				</li>
@@ -187,28 +183,6 @@
 	</section>
 
 	<section class="section">
-		<div class="section-inner embed">
-			<div>
-				<h2>It goes on your own site</h2>
-				<p class="section-lead">
-					A daily puzzle is a reason to come back tomorrow. Put yours on a homepage, a newsletter
-					archive, a docs page, or a class site — it inherits the page's width and follows your
-					reader's light or dark mode.
-				</p>
-				<a class="btn btn-secondary" href={resolve('/explore')}>See one running</a>
-			</div>
-			<pre class="snippet"><code
-					>&lt;script type="module"
-  src="https://pzzlr.app/sdk/pzzlr-sdk.js"&gt;&lt;/script&gt;
-
-&lt;pzzlr-ladder
-  apibase="https://pzzlr.app"
-  game="your-game-id"&gt;&lt;/pzzlr-ladder&gt;</code
-				></pre>
-		</div>
-	</section>
-
-	<section class="section section-sunk">
 		<div class="section-inner faq">
 			<h2>Questions</h2>
 			<dl>
@@ -221,7 +195,8 @@
 			</dl>
 			<p class="faq-more">
 				More in <a href={resolve('/support')}>support</a>, or read
-				<a href={resolve('/about')}>what Pzzlr is</a>.
+				<a href={resolve('/about')}>what Pzzlr is</a> and how to
+				<a href={resolve('/embed')}>put a game on your own site</a>.
 			</p>
 		</div>
 	</section>
@@ -229,7 +204,7 @@
 	<!-- The last thing on the page is the first thing it asked for. No
 	     heading or pitch above it: the page has just spent five sections
 	     making the case, and the buttons say where each one goes. -->
-	<section class="section closer">
+	<section class="section section-sunk closer">
 		<div class="section-inner">
 			<div class="hero-actions">
 				<a class="btn btn-primary btn-lg" href={resolve('/create')}>Create a game</a>
@@ -434,27 +409,6 @@
 	}
 	.steps p {
 		margin: 0;
-	}
-
-	.embed {
-		display: grid;
-		/* Deliberately generous: the code block is only readable when it can
-		   hold its longest line, so the pair stacks rather than squeezing it
-		   into a horizontal scroll. */
-		grid-template-columns: repeat(auto-fit, minmax(25rem, 1fr));
-		gap: var(--space-8);
-		align-items: center;
-	}
-	.snippet {
-		margin: 0;
-		padding: var(--space-4);
-		border-radius: var(--radius-md);
-		border: 1px solid var(--color-border);
-		background: var(--color-sunk);
-		color: var(--color-text);
-		font-size: 0.82rem;
-		line-height: 1.6;
-		overflow-x: auto;
 	}
 
 	.faq dl {

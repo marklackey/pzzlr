@@ -67,7 +67,13 @@
 			{/if}
 
 			{#if data.user}
-				<button type="button" class="btn btn-secondary btn-sm" onclick={signOut}>Sign out</button>
+				<!-- Off the bar on a phone, where My games and the menu toggle are
+				     already using the width — it's in the menu instead. Signing in
+				     stays put: a signed-out bar has room, and it's the one thing
+				     someone might be there to do. -->
+				<button type="button" class="btn btn-secondary btn-sm wide-only" onclick={signOut}>
+					Sign out
+				</button>
 			{:else}
 				<a class="btn btn-secondary btn-sm" href={resolve('/login')} onclick={closeMenu}>Sign in</a>
 			{/if}
@@ -109,9 +115,16 @@
 				<!-- Shown to everyone: the signed-in player already knows what Pzzlr
 				     is, but this is also where someone sends a link to explain it. -->
 				<a class="menu-link" href={resolve('/about')} onclick={closeMenu}>About</a>
+				<!-- Off the landing page on purpose: someone here to play a game
+				     doesn't need to be told they could host one. It's in the menu
+				     for the people who came looking for it. -->
+				<a class="menu-link" href={resolve('/embed')} onclick={closeMenu}>Embed</a>
 				<a class="menu-link" href={resolve('/support')} onclick={closeMenu}>Support</a>
 				<a class="menu-link" href={resolve('/privacy')} onclick={closeMenu}>Privacy</a>
 				<a class="menu-link" href={resolve('/terms')} onclick={closeMenu}>Terms</a>
+				{#if data.user}
+					<button type="button" class="menu-link narrow-only" onclick={signOut}>Sign out</button>
+				{/if}
 				<!-- Below the destinations, above the fine print: a setting, not
 				     a place to go. -->
 				<div class="menu-divider"></div>
@@ -189,6 +202,16 @@
 		color: var(--color-text);
 		font-size: 0.9rem;
 	}
+	/* Sign out is the one menu item that acts rather than navigates, so it's
+	   a button wearing a link's clothes. */
+	button.menu-link {
+		border: none;
+		background: none;
+		font: inherit;
+		font-size: 0.9rem;
+		text-align: left;
+		cursor: pointer;
+	}
 	.menu-link:hover {
 		background: var(--color-bg);
 		color: var(--color-primary);
@@ -265,6 +288,9 @@
 	}
 	@media (max-width: 639px) {
 		.nav-links {
+			display: none;
+		}
+		.wide-only {
 			display: none;
 		}
 	}
