@@ -721,13 +721,6 @@
 		display: inline-block;
 		transform: scale(1.45);
 	}
-	button.enter {
-		background: var(--accent);
-		color: white;
-	}
-	button.enter:hover {
-		background: var(--accent-hover);
-	}
 	.won {
 		color: var(--accent);
 		font-weight: 700;
