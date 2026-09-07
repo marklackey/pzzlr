@@ -350,9 +350,8 @@
 				</div>
 			{/if}
 
-			<!-- --tiles is the board's word length, inherited by every row under
-			     it: the reveal animation's geometry is written in terms of how
-			     many tiles a word is (see .answer .row in the styles). -->
+			<!-- --tiles is the word's length, which the circle's geometry below
+			     is written in terms of; it's inherited by every row here. -->
 			<div
 				class="board"
 				class:revealed={revealedWords.length > 0}
@@ -360,13 +359,10 @@
 				bind:this={boardEl}
 			>
 				{#each Array.from({ length: maxGuesses }) as _, rowIndex (rowIndex)}
-					<!-- The winning guess is the answer, arrived at rather than given
-					     — so it opens the same way a revealed one does. -->
-					<div
-						class="row"
-						class:just-solved={solvedLive && status === 'won' && rowIndex === guesses.length - 1}
-						bind:this={rowEls[rowIndex]}
-					>
+					{@const opening = solvedLive && status === 'won' && rowIndex === guesses.length - 1}
+					<!-- The winning guess is the answer, arrived at rather than
+					     given — so it opens the same way a revealed one does. -->
+					<div class="row" class:opening bind:this={rowEls[rowIndex]}>
 						{#if rowIndex < guesses.length}
 							{#each guesses[rowIndex] as { letter, status: s }, i (i)}
 								<div class="tile filled {s}">{letter.toUpperCase()}</div>
@@ -380,18 +376,20 @@
 								<div class="tile"></div>
 							{/each}
 						{/if}
+						{#if opening}<span class="sweep" aria-hidden="true"></span>{/if}
 					</div>
 				{/each}
 
 				{#if revealedWords.length > 0}
 					<div class="answer">
 						<span class="answer-label">Answer</span>
-						<div class="row">
+						<div class="row opening">
 							{#each Array.from({ length: wordLength }) as _, i (i)}
 								<!-- Every letter correct — what the board looks like when
 								     someone guesses it. -->
 								<div class="tile filled correct">{revealedWords[0][i]?.toUpperCase() ?? ''}</div>
 							{/each}
+							<span class="sweep" aria-hidden="true"></span>
 						</div>
 					</div>
 				{/if}
@@ -423,19 +421,21 @@
 								<button
 									type="button"
 									class="wide enter"
+									aria-label="Enter"
 									onmousedown={keepFocusOffKeys}
 									onclick={submitGuess}
 								>
-									ENTER
+									<span class="glyph">&#9166;</span>
 								</button>
 							{:else if key === 'back'}
 								<button
 									type="button"
-									class="wide"
+									class="wide back"
+									aria-label="Delete"
 									onmousedown={keepFocusOffKeys}
 									onclick={backspace}
 								>
-									&#9003;
+									<span class="glyph">&#9003;</span>
 								</button>
 							{:else}
 								<button
@@ -650,6 +650,76 @@
 		font-weight: 700;
 		font-size: 1.4rem;
 	}
+	/* The answer opens as one circle growing out of the middle of the word,
+	   rather than flipping letter by letter, so the whole word arrives as a
+	   single shape instead of being spelled out.
+
+	   The circle is a hole in a cover the colour of the board, and the only
+	   thing that moves is that cover's transform. Transform and opacity are
+	   the two properties a browser animates off the main thread, so the row
+	   underneath is painted once and never touched again while the circle
+	   grows. clip-path is the obvious way to write this and is what it used
+	   to do — but Chrome doesn't hardware-accelerate clip-path yet, so every
+	   frame repainted the row's text and rounded tiles, four rows at a time
+	   on a quordle, which is exactly where it stuttered. */
+	.row.opening {
+		position: relative;
+		/* Keeps the cover's ring inside the row it belongs to. */
+		overflow: hidden;
+		/* A flex item only gets an automatic minimum size while its overflow
+		   is visible, so the line above hands this row a minimum height of
+		   zero — and a board that has filled its own height then flattens it
+		   to nothing. This is what keeps the row the height of its tiles. */
+		flex-shrink: 0;
+	}
+	.sweep {
+		/* The middle of the word, which is not the middle of the row: a row is
+		   as wide as the board, while the word only runs as far as its tiles,
+		   and those stop growing at --tile-max. The first half of the min() below
+		   is for a row whose tiles have filled it, the second for one they
+		   haven't. A tile's cap is on its content box, hence the borders. */
+		--word: min(
+			100%,
+			calc(
+				var(--tiles) * (var(--tile-max) + 2 * var(--tile-border)) +
+				(var(--tiles) - 1) * var(--row-gap)
+			)
+		);
+		position: absolute;
+		top: 50%;
+		left: calc(var(--word) / 2);
+		width: var(--word);
+		aspect-ratio: 1;
+		margin: calc(var(--word) / -2) 0 0 calc(var(--word) / -2);
+		border-radius: 50%;
+		/* The ring that hides the rest of the row. It scales along with the
+		   hole, so its width here and the starting scale below together decide
+		   how much is still covered on the first frame: 8000 × 0.08 is 640px
+		   out from a hole a fifth of a tile wide, which buries any row the
+		   board can produce. Bigger numbers only hand the compositor a bigger
+		   layer to carry. */
+		box-shadow: 0 0 0 8000px var(--bg);
+		animation: sweep-open 1000ms cubic-bezier(0.4, 0, 0.2, 1) var(--delay, 0ms) both;
+		pointer-events: none;
+	}
+	@keyframes sweep-open {
+		from {
+			/* A dot rather than nothing, so the ring above still has some
+			   width to hide the row with on the first frame. */
+			transform: scale(0.08);
+		}
+		to {
+			/* Past 1, so the hole clears the corners of the run of tiles
+			   instead of stopping just short of the first and last letters. */
+			transform: scale(1.15);
+		}
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.sweep {
+			animation: none;
+			transform: scale(1.15);
+		}
+	}
 	.tile.input {
 		border-color: #b3aed6;
 	}
@@ -686,19 +756,6 @@
 		color: var(--ink-muted);
 	}
 
-	/* The answer opens as one circle growing out of the middle of the word,
-	   rather than flipping letter by letter: the whole word arrives as a
-	   single shape, so it reads at once instead of being spelled out.
-	   clip-path doesn't touch layout, so the row holds its space the whole
-	   time and nothing under it moves while the circle grows. */
-	@keyframes answer-open {
-		from {
-			clip-path: circle(0px at var(--word-center) 50%);
-		}
-		to {
-			clip-path: circle(var(--word-radius) at var(--word-center) 50%);
-		}
-	}
 	@keyframes answer-label-in {
 		from {
 			opacity: 0;
@@ -707,37 +764,12 @@
 			opacity: 1;
 		}
 	}
+	/* Opacity is one of the few properties the browser animates off the main
+	   thread, so this costs nothing next to the circle it accompanies. */
 	.answer-label {
 		animation: answer-label-in 500ms ease-out 340ms both;
 	}
-	.answer .row,
-	.row.just-solved {
-		/* The row is as wide as the board, but the word in it is only as wide
-		   as its tiles, which stop growing at --tile-max — so the middle of
-		   the row isn't the middle of the word, and a circle centred on the
-		   row would open off to one side of it. Each min() below says the
-		   same thing twice: first for a row the tiles have filled (a narrow
-		   board, where the word is the row), then for one they haven't (a
-		   wide board, where the word is --tiles capped tiles and the gaps
-		   between them).
-
-		   The radius has to reach the corners of a row of squares, which is
-		   a little over half the word's width — 0.55 covers it from three
-		   letters up. Written as a percentage it's 75%: percentages in a
-		   radius mean sqrt((w² + h²) / 2) of the box, not its width.
-		   A tile's cap is on its content box, so a full-width tile is that
-		   plus its two borders. */
-		--word-width: calc(
-			var(--tiles) * (var(--tile-max) + 2 * var(--tile-border)) +
-			(var(--tiles) - 1) * var(--row-gap)
-		);
-		--word-center: min(50%, calc(var(--word-width) / 2));
-		--word-radius: min(75%, calc(var(--word-width) * 0.55));
-		animation: answer-open 1000ms cubic-bezier(0.4, 0, 0.2, 1) both;
-	}
 	@media (prefers-reduced-motion: reduce) {
-		.answer .row,
-		.row.just-solved,
 		.answer-label {
 			animation: none;
 		}
@@ -771,7 +803,8 @@
 	button {
 		/* Narrow side padding: these are single glyphs, and every pixel
 		   spent here across ten keys comes out of the row's shared width —
-		   which is what the wider ENTER key needs to fit its label. */
+		   which is what leaves the two wide keys room to sit at either end
+		   of the bottom row. */
 		padding: 1.1rem 0.2rem;
 		border: none;
 		box-sizing: border-box;
@@ -781,6 +814,11 @@
 		text-transform: uppercase;
 		font-weight: 700;
 		font-size: 1.05rem;
+		/* Pinned rather than left at `normal`, which is read off whichever
+		   font draws the key: ⏎ and ⌫ come from a fallback symbol face with
+		   taller metrics than the letters', and a line box that grows with the
+		   glyph would make those two keys decide the whole row's height. */
+		line-height: 1.15;
 		cursor: pointer;
 		transition: background 0.1s;
 		overflow: hidden;
@@ -791,13 +829,16 @@
 	}
 	button.wide {
 		flex: 1.9 1 0;
-		font-size: 0.68rem;
-		letter-spacing: -0.02em;
-		/* Tighter than a letter key's: "ENTER" is five glyphs in a slot only
-		   ~1.9x as wide as a one-letter key, so the side padding is what
-		   decides whether it fits or gets clipped. */
-		padding-left: 0.15rem;
-		padding-right: 0.15rem;
+	}
+	/* Both wide keys are a single symbol rather than a word — ⏎ and ⌫ — and
+	   both draw a good deal smaller than a capital letter does at the same
+	   type size, so they get scaled up to read as the letters' equals.
+	   Scaling the glyph rather than raising the font size leaves the line box
+	   alone, so these keys and their row stay exactly the size the letter
+	   keys lay them out at. */
+	button.wide .glyph {
+		display: inline-block;
+		transform: scale(1.45);
 	}
 	button.enter {
 		background: var(--accent);
