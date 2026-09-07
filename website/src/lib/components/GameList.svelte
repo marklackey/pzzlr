@@ -34,7 +34,7 @@
 {:else}
 	<ul>
 		{#each games as game (game.id)}
-			<li class="card">
+			<li class="card mode-{game.mode}">
 				<div class="row-head">
 					<a class="title" href={resolve('/g/[id]', { id: game.id })}>
 						{gameTitle(game)}
@@ -102,10 +102,38 @@
 		letter-spacing: 0.06em;
 		color: var(--color-text);
 	}
+	/* The game's own colour along the edge of its row — the same hairline the
+	   landing page's four mode cards wear across the top. Without it a list
+	   is a column of identical white rectangles, and the type is left to a
+	   badge small enough to have to be read. */
 	li {
-		transition: border-color 0.15s;
+		border-left: 3px solid var(--color-border-strong);
+		/* The other three sides are a 1px (transparent, in light) card
+		   border, so the extra 2px comes back out of the padding and the
+		   text stays on the same line as everything else. */
+		padding-left: calc(var(--space-5) - 2px);
+		transition:
+			border-color 0.15s,
+			box-shadow 0.15s;
 	}
+	li.mode-ladder {
+		border-left-color: var(--color-ladder);
+	}
+	li.mode-wordle {
+		border-left-color: var(--color-wordle);
+	}
+	li.mode-quordle {
+		border-left-color: var(--color-quordle);
+	}
+	li.mode-absurdle {
+		border-left-color: var(--color-absurdle);
+	}
+	/* Light lifts the card, dark outlines it — see the card tokens in
+	   app.css. The left edge keeps its colour either way. */
 	li:hover {
-		border-color: var(--color-border-strong);
+		border-top-color: var(--card-border-hover);
+		border-right-color: var(--card-border-hover);
+		border-bottom-color: var(--card-border-hover);
+		box-shadow: var(--shadow-card-hover);
 	}
 </style>

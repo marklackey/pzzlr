@@ -760,9 +760,9 @@
 		margin: var(--space-3) 0 0;
 		padding: var(--space-3);
 		border-radius: var(--radius-sm);
-		background: #fdf6e3;
-		border: 1px solid #e6d9a8;
-		color: #6b5518;
+		background: var(--color-warning-bg);
+		border: 1px solid var(--color-warning-border);
+		color: var(--color-warning);
 		font-size: 0.85rem;
 		line-height: 1.5;
 	}
@@ -779,9 +779,9 @@
 		color: var(--color-text-muted);
 	}
 	.warning.error {
-		background: #fdecea;
-		border-color: #f0c2bd;
-		color: #8a2c20;
+		background: var(--color-error-bg);
+		border-color: var(--color-error-border);
+		color: var(--color-error);
 	}
 	.field-note {
 		margin: calc(var(--space-2) * -1) 0 0;

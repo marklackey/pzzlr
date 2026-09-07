@@ -1,18 +1,18 @@
 :root {
 	--font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 
-	/* Warm neutrals rather than grey ones: the whole surface reads as paper,
-	   which is what lets the few saturated colours below carry meaning
-	   instead of competing with a cold background. */
-	--color-bg: #f6f4ef;
+	/* A plain light grey, near enough to neutral that the saturated colours
+	   below are the only warmth on the page. White cards read as raised off
+	   it without the surface itself having a colour of its own. */
+	--color-bg: #f1f1f3;
 	--color-surface: #ffffff;
 	/* One step down from a surface — for insets and anything that should
 	   read as a well rather than a card. */
-	--color-sunk: #f0ece4;
+	--color-sunk: #e9e9ec;
 	--color-text: #1b1922;
 	--color-text-muted: #6d6878;
-	--color-border: #e4dfd6;
-	--color-border-strong: #cfc7b8;
+	--color-border: #e0e0e4;
+	--color-border-strong: #c7c7ce;
 
 	/* Deep indigo, not the neon violet this started as. Saturated enough to
 	   be the brand, dark enough to sit under body text without shouting. */
@@ -41,6 +41,22 @@
 	--color-error: #a33a32;
 	--color-error-hover: #8a3029;
 	--color-error-bg: #f8e8e6;
+	--color-error-border: #f0c2bd;
+	/* Amber stays amber on a grey page — a caution that reads as neutral
+	   isn't a caution. These are the third semantic pair, alongside success
+	   and error, so the create form's warnings stop hard-coding their own. */
+	--color-warning: #6b5518;
+	--color-warning-bg: #fdf6e3;
+	--color-warning-border: #e6d9a8;
+
+	/* A card is told apart from the page by elevation here and by an outline
+	   in dark mode — light comes from above, so a shadow on a dark ground
+	   reads as nothing at all, and a border is what gives a dark card its
+	   edge. Both are tokens so .card can state the intent once. */
+	--card-border: transparent;
+	--card-border-hover: transparent;
+	--shadow-card: 0 1px 2px rgba(24, 24, 28, 0.05), 0 6px 16px -8px rgba(24, 24, 28, 0.12);
+	--shadow-card-hover: 0 2px 4px rgba(24, 24, 28, 0.07), 0 14px 28px -12px rgba(24, 24, 28, 0.2);
 
 	--radius-sm: 7px;
 	--radius-md: 12px;
@@ -98,6 +114,15 @@
 		--color-error: #e08379;
 		--color-error-hover: #ea968d;
 		--color-error-bg: #3a2422;
+		--color-error-border: #5c342f;
+		--color-warning: #e3c37a;
+		--color-warning-bg: #332b16;
+		--color-warning-border: #57492a;
+
+		--card-border: var(--color-border);
+		--card-border-hover: var(--color-border-strong);
+		--shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4);
+		--shadow-card-hover: 0 1px 2px rgba(0, 0, 0, 0.4);
 
 		--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
 		--shadow-md: 0 8px 24px -12px rgba(0, 0, 0, 0.6);
@@ -132,6 +157,15 @@
 	--color-error: #e08379;
 	--color-error-hover: #ea968d;
 	--color-error-bg: #3a2422;
+	--color-error-border: #5c342f;
+	--color-warning: #e3c37a;
+	--color-warning-bg: #332b16;
+	--color-warning-border: #57492a;
+
+	--card-border: var(--color-border);
+	--card-border-hover: var(--color-border-strong);
+	--shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4);
+	--shadow-card-hover: 0 1px 2px rgba(0, 0, 0, 0.4);
 
 	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
 	--shadow-md: 0 8px 24px -12px rgba(0, 0, 0, 0.6);
@@ -246,9 +280,9 @@ a:hover {
 
 .card {
 	background: var(--color-surface);
-	border: 1px solid var(--color-border);
+	border: 1px solid var(--card-border);
 	border-radius: var(--radius-lg);
-	box-shadow: var(--shadow-sm);
+	box-shadow: var(--shadow-card);
 	padding: var(--space-5);
 }
 
