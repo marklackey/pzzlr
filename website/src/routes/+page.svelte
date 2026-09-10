@@ -7,16 +7,18 @@
 	/**
 	 * COLD to WARM, one letter at a time — the shortest possible explanation
 	 * of what a ladder is, and it does the job before anyone reads a word of
-	 * the copy. Each row names the index that changed so the tile can carry
-	 * the ladder hue; -1 on the first, which changed from nothing.
+	 * the copy.
+	 *
+	 * The tiles fill the way the real board fills: a letter that has reached
+	 * its place in the target is coloured and stays coloured, so the demo
+	 * climbs from an empty row to a full one. It used to colour the letter
+	 * that *changed* on each rung instead, which was a rule the widget no
+	 * longer draws — the ladder dropped its just-moved state, since a settled
+	 * letter that had only just landed was showing the same thing in two
+	 * shades.
 	 */
-	const rungs: { word: string; changed: number }[] = [
-		{ word: 'COLD', changed: -1 },
-		{ word: 'CORD', changed: 2 },
-		{ word: 'WORD', changed: 0 },
-		{ word: 'WARD', changed: 1 },
-		{ word: 'WARM', changed: 3 }
-	];
+	const ladderTarget = 'WARM';
+	const rungs = ['COLD', 'CORD', 'WORD', 'WARD', 'WARM'];
 
 	const modes = [
 		{
@@ -108,10 +110,10 @@
 		     instead — the tiles read as loose letters out of context. -->
 		<figure class="hero-demo">
 			<div class="rungs" aria-hidden="true">
-				{#each rungs as rung (rung.word)}
+				{#each rungs as word (word)}
 					<div class="rung">
-						{#each rung.word.split('') as letter, i (i)}
-							<span class="tile" class:changed={i === rung.changed}>{letter}</span>
+						{#each word.split('') as letter, i (i)}
+							<span class="tile" class:settled={letter === ladderTarget[i]}>{letter}</span>
 						{/each}
 					</div>
 				{/each}
@@ -227,10 +229,37 @@
 		box-sizing: border-box;
 	}
 
+	/* The page's colour comes from the games, not from a brand hue — the
+	   chrome stays ink (see the --color-primary comment in app.css). So the
+	   hero is washed with the four mode colours themselves, mixed down to a
+	   tint against the page so they read as light rather than as four
+	   competing blocks. color-mix keeps every tint tied to its hue, which
+	   matters here: these four have moved more than once, and a hard-coded
+	   pastel would quietly stop matching the game it stands for. */
 	.hero {
 		padding: var(--space-12) 0 var(--space-10);
 		border-bottom: 1px solid var(--color-border);
-		background: linear-gradient(180deg, var(--color-primary-soft), var(--color-bg) 70%);
+		background:
+			radial-gradient(
+				52rem 26rem at 8% -12%,
+				color-mix(in srgb, var(--color-ladder) 30%, transparent),
+				transparent 68%
+			),
+			radial-gradient(
+				44rem 24rem at 92% -8%,
+				color-mix(in srgb, var(--color-absurdle) 26%, transparent),
+				transparent 66%
+			),
+			radial-gradient(
+				38rem 20rem at 62% 6%,
+				color-mix(in srgb, var(--color-wordle) 18%, transparent),
+				transparent 62%
+			),
+			linear-gradient(
+				180deg,
+				color-mix(in srgb, var(--color-quordle) 10%, var(--color-bg)),
+				var(--color-bg) 74%
+			);
 	}
 	.hero-inner {
 		display: grid;
@@ -308,11 +337,12 @@
 		font-weight: 700;
 		letter-spacing: 0.02em;
 	}
-	/* The one letter that moved on this rung — the whole rule, in colour. */
-	.tile.changed {
-		background: var(--color-ladder);
-		border-color: var(--color-ladder);
-		color: var(--color-primary-contrast);
+	/* A letter that has reached its place in the target, in the colour the
+	   real board gives it. */
+	.tile.settled {
+		background: var(--color-settled);
+		border-color: var(--color-settled);
+		color: var(--color-settled-ink);
 	}
 	.section {
 		padding: var(--space-12) 0;
@@ -353,21 +383,28 @@
 		}
 	}
 	.mode {
-		/* A hairline of the type's own colour, so the four cards are told
-		   apart at a glance rather than only by their badges. */
-		border-top: 3px solid var(--color-border);
+		/* A band of the type's own colour along the top and a wash of it
+		   behind the card, so the four are told apart by colour at arm's
+		   length rather than by reading four badges. The wash is mixed
+		   against --color-surface, which is what keeps it a tint in light
+		   and a deep shade in dark without a second set of values. */
+		border-top: 4px solid var(--color-border);
 	}
 	.mode-ladder {
 		border-top-color: var(--color-ladder);
+		background: color-mix(in srgb, var(--color-ladder) 9%, var(--color-surface));
 	}
 	.mode-wordle {
 		border-top-color: var(--color-wordle);
+		background: color-mix(in srgb, var(--color-wordle) 9%, var(--color-surface));
 	}
 	.mode-quordle {
 		border-top-color: var(--color-quordle);
+		background: color-mix(in srgb, var(--color-quordle) 9%, var(--color-surface));
 	}
 	.mode-absurdle {
 		border-top-color: var(--color-absurdle);
+		background: color-mix(in srgb, var(--color-absurdle) 9%, var(--color-surface));
 	}
 	.mode p {
 		margin: var(--space-3) 0 0;
@@ -402,6 +439,21 @@
 		background: var(--color-accent-soft);
 		color: var(--color-accent);
 		font-weight: 700;
+	}
+	/* Filled in the mode hues rather than tinted with them: a numeral this
+	   small needs its label at full contrast, and --color-primary-contrast is
+	   the label these four already carry on their badges. */
+	.steps li:nth-child(1) .step-n {
+		background: var(--color-ladder);
+		color: var(--color-primary-contrast);
+	}
+	.steps li:nth-child(2) .step-n {
+		background: var(--color-wordle);
+		color: var(--color-primary-contrast);
+	}
+	.steps li:nth-child(3) .step-n {
+		background: var(--color-absurdle);
+		color: var(--color-primary-contrast);
 	}
 	.steps h3 {
 		font-size: 1.05rem;

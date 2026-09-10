@@ -1,12 +1,21 @@
 <svelte:options customElement="pzzlr-ladder" />
 
 <script lang="ts">
-	import { KEYBOARD_ROWS, createKeyboardHandlers } from './keyboard';
+	import { createKeyboardHandlers } from './keyboard';
+	import Keyboard from './Keyboard.svelte';
+	import Palette from './Palette.svelte';
+	import BoardStyles from './BoardStyles.svelte';
 	import { authHeaders } from './http';
 	import { createShareCopy } from './share';
 	import { scrollIntoViewWithin } from './scroll';
 
-	let { apibase = '', game = '', date = '', apikey = '', revealed = '' } = $props<{
+	let {
+		apibase = '',
+		game = '',
+		date = '',
+		apikey = '',
+		revealed = ''
+	} = $props<{
 		apibase?: string;
 		/** Id of a stored game config. The only way to load a puzzle — there's
 		 * one engine, and every game it serves is identified by config id. */
@@ -42,9 +51,7 @@
 	 * board, because the answer has nothing to do with what anyone guessed
 	 * — it's the same ladder whether they played it or not.
 	 */
-	const answerRows = $derived(
-		revealedWords[0] === start ? revealedWords.slice(1) : revealedWords
-	);
+	const answerRows = $derived(revealedWords[0] === start ? revealedWords.slice(1) : revealedWords);
 
 	type Status = 'loading' | 'playing' | 'won' | 'error';
 
@@ -181,15 +188,6 @@
 		}
 	}
 
-	// A tapped key shouldn't keep the focus: a player who clicks their way
-	// through a word and then reaches for Enter on their own keyboard would
-	// otherwise press whichever key they last clicked as well. Preventing the
-	// mousedown default stops the button taking focus without stopping the
-	// click, and leaves tabbing to the keys working as it did.
-	function keepFocusOffKeys(e: MouseEvent) {
-		e.preventDefault();
-	}
-
 	const { typeLetter, backspace, handleKeydown } = createKeyboardHandlers({
 		isActive: () => status === 'playing' && revealedWords.length === 0,
 		currentGuess: () => currentGuess,
@@ -216,7 +214,9 @@
 		const lines = rows
 			.slice(1)
 			.map((word) =>
-				Array.from({ length: puzzleLength }, (_, i) => (matchesTarget(word, i) ? '🟩' : '⬜')).join('')
+				Array.from({ length: puzzleLength }, (_, i) => (matchesTarget(word, i) ? '🟩' : '⬜')).join(
+					''
+				)
 			);
 		const header = puzzleNumber
 			? `Ladder #${puzzleNumber} — ${guessesMade()}/${bestPossibleRemaining()} guesses`
@@ -250,6 +250,9 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
+<Palette />
+<BoardStyles />
+
 <div class="ladder">
 	{#if status === 'loading'}
 		<p>Loading puzzle…</p>
@@ -267,8 +270,9 @@
 				<span class="target">Spell <strong>{end.toUpperCase()}</strong>!</span>
 			</div>
 
-			<!-- --tiles is the word's length, which the circle's geometry below
-			     is written in terms of; it's inherited by every row here. -->
+			<!-- --tiles is the word's length, which the reveal circle's geometry
+			     is written in terms of (see .sweep in BoardStyles.svelte); it's
+			     inherited by every row here. -->
 			<div
 				class="board"
 				class:revealed={revealedWords.length > 0}
@@ -279,7 +283,8 @@
 					{@const opening = solvedLive && status === 'won' && rowIndex === rows.length - 1}
 					<!-- The rung that reaches the target is the answer, climbed to
 					     rather than handed over — so it opens the way a revealed
-					     ladder's last rung does. -->
+					     ladder's last rung does, and it's the one row that fills
+					     with colour rather than being outlined in it. -->
 					<div class="row" class:opening>
 						{#each Array.from({ length: puzzleLength }) as _, i (i)}
 							<div
@@ -298,6 +303,7 @@
 				{/each}
 
 				{#if revealedWords.length > 0}
+					{@const answerPath = [start, ...answerRows]}
 					<div class="answer">
 						<!-- Counted the way the rest of the app counts a ladder: every
 						     word from start to target, which is what "minimum steps"
@@ -311,17 +317,16 @@
 									<!-- The same tile a played rung uses, matched letters and
 									     all: a revealed ladder should look like one somebody
 									     climbed, not like a sketch of one. -->
-									<div class="tile" class:matched={matchesTarget(word, i)}>
+									<div
+										class="tile"
+										class:matched={matchesTarget(word, i)}
+									>
 										{word[i]?.toUpperCase() ?? ''}
 									</div>
 								{/each}
 								<!-- Each rung opens a beat after the one above it, so a
 								     revealed ladder climbs the way a played one does. -->
-								<span
-									class="sweep"
-									style="--delay: {wordIndex * 130}ms"
-									aria-hidden="true"
-								></span>
+								<span class="sweep" style="--delay: {wordIndex * 130}ms" aria-hidden="true"></span>
 							</div>
 						{/each}
 					</div>
@@ -351,43 +356,7 @@
 		</div>
 
 		{#if status !== 'won'}
-			<div class="keyboard">
-				{#each KEYBOARD_ROWS as krow, i (i)}
-					<div class="krow">
-						{#each krow as key (key)}
-							{#if key === 'enter'}
-								<button
-									type="button"
-									class="wide enter"
-									aria-label="Enter"
-									onmousedown={keepFocusOffKeys}
-									onclick={submitGuess}
-								>
-									<span class="glyph">&#9166;</span>
-								</button>
-							{:else if key === 'back'}
-								<button
-									type="button"
-									class="wide back"
-									aria-label="Delete"
-									onmousedown={keepFocusOffKeys}
-									onclick={backspace}
-								>
-									<span class="glyph">&#9003;</span>
-								</button>
-							{:else}
-								<button
-									type="button"
-									onmousedown={keepFocusOffKeys}
-									onclick={() => typeLetter(key)}
-								>
-									{key}
-								</button>
-							{/if}
-						{/each}
-					</div>
-				{/each}
-			</div>
+			<Keyboard onLetter={typeLetter} onEnter={submitGuess} onBackspace={backspace} />
 		{/if}
 	{/if}
 </div>
@@ -397,6 +366,72 @@
 	   percentage width — without this, .ladder's width:100% below has
 	   nothing concrete to size against. */
 	:host {
+		/* The ladder's hue, matched to --color-ladder in the site's app.css and
+		   moved with it. It was a violet for a long time — first a deep one
+		   picked for a warm paper background this palette no longer has, then
+		   a vivid one carrying more saturation than a colour spread over a
+		   whole board of tiles wants, then that one pulled back to about 60%
+		   saturation — which, once it moved to blue, came out washed. Two
+		   goes at "more saturated" still read as muted, because saturation
+		   was being spent at a lightness that keeps a colour dull: a fully
+		   saturated blue at 35% lightness is a navy, not a bright blue.
+		   These are at full saturation AND high lightness, which is what
+		   actually pops.
+
+		   What pays for that is the label, not the fill. A vivid blue lands
+		   where neither white nor near-black clears 4.5:1 by much, so each
+		   fill takes whichever ink its own lightness allows: white on the
+		   light accent (4.6:1, and the site's LADDER badge and the landing
+		   page's .tile.changed lean on the same pairing), and a deep navy on
+		   the three bright fills. That's why --accent-soft-ink-dark is dark
+		   ink now — its fill went from a navy block to a bright blue one.
+
+		   Note it now sits close to --color-quordle and to the wordle
+		   family's --hit, so the four mode hues are no longer spread evenly
+		   round the wheel — if that reads as a collision in a listing, the
+		   fix is to move quordle, not to walk this back. It's the only colour
+		   this game picks for itself; Palette.svelte builds the rest of both
+		   themes around it. */
+		--accent-light: #0071eb;
+		--accent-hover-light: #0063cc;
+		--accent-dark: #66b0ff;
+		--accent-hover-dark: #85c0ff;
+		/* The fill a settled rung wears, and the label each fill takes. It is
+		   the colour most of a climbed board is made of, so it carries the
+		   weight of whether the game looks alive — which is why it is a
+		   bright blue in both themes now rather than the near-grey tint and
+		   the deep block it used to be. Picked per theme rather than derived
+		   from one another. It is every settled tile on the board, the last
+		   row included — --accent is left for the things around the board
+		   rather than a second shade inside it. */
+		/* The one warm colour on this board: the Copy button's fill and the
+		   target word in the header, which are the two places that say what
+		   you are aiming at. It is the complement of the ladder's blue —
+		   about 180° round the wheel from it — so it reads as the other
+		   thing rather than as another shade of the same thing.
+
+		   Light needs two values where dark needs one, and --goal-text is that
+		   split. As TEXT on paper an orange runs out of room at about
+		   #c75000, which is 4.6:1 — a shade lighter drops under 4.5 and the
+		   target word stops being readable for anyone who needs the
+		   contrast. The fill has no such ceiling, since it carries a dark
+		   label rather than being read against paper, so the button is a
+		   good deal brighter than the word it echoes. On the dark board the
+		   bright value clears 7:1 as text and does both jobs. */
+		--goal-light: #ff781f;
+		--goal-hover-light: #ff6600;
+		--goal-ink-light: #2b1200;
+		--goal-text-light: #c75000;
+		--goal-dark: #ff8b3d;
+		--goal-hover-dark: #ff9752;
+		--goal-ink-dark: #2b1200;
+		--goal-text-dark: #ff8b3d;
+		--accent-ink-light: #ffffff;
+		--accent-soft-light: #42caff;
+		--accent-soft-ink-light: #062441;
+		--accent-ink-dark: #10161d;
+		--accent-soft-dark: #1fbfff;
+		--accent-soft-ink-dark: #062441;
 		/* A flex column rather than a plain block so the root below can fill
 		   whatever height the host ends up with — including a height it got
 		   by being stretched as someone else's flex item, which a percentage
@@ -410,26 +445,7 @@
 		box-sizing: border-box;
 	}
 	.ladder {
-		--accent: #5a49b5;
-		--accent-hover: #4a3b9b;
-		--ink: #1b1922;
-		--ink-muted: #6d6878;
-		--line: #e0e0e4;
-		--key-bg: #e6e6ea;
-		--key-bg-hover: #d9d9df;
-		--bg: #fff;
-		/* Row geometry, shared by the tiles themselves and by the desktop
-		   height below that reserves room for --visible-rows of them. */
-		--tile-border: 2px;
-		--tile-max: 3.4rem;
-		--row-gap: 0.4rem;
-		--visible-rows: 6;
-		font-family:
-			-apple-system,
-			BlinkMacSystemFont,
-			'Segoe UI',
-			Roboto,
-			sans-serif;
+		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 		width: 100%;
 		max-width: 40rem;
 		box-sizing: border-box;
@@ -439,8 +455,8 @@
 		flex-direction: column;
 		/* Fills the host: a definite height given by an embed, or the one
 		   the website's phone layout stretches it to (see .board-card in
-		   g/[id]/+page.svelte). Then .scroll-area/.keyboard below split
-		   that height and the keyboard sits on the bottom edge. With no
+		   g/[id]/+page.svelte). Then .scroll-area below and the keyboard
+		   split that height and the keyboard sits on the bottom edge. With no
 		   height to fill, this is just content height and the widget sizes
 		   to itself. */
 		flex: 1 1 auto;
@@ -466,60 +482,21 @@
 		justify-content: space-between;
 		align-items: baseline;
 		gap: 0.5rem;
-		font-size: 0.85rem;
+		/* The line that says which puzzle this is and what it wants — the
+		   two facts you re-read every few rungs. It spent a long time at
+		   0.85rem, smaller than the "given" labels beside the board. */
+		font-size: 1.05rem;
 		color: var(--ink-muted);
 		margin-bottom: 1rem;
 	}
 	.header strong {
-		color: var(--accent);
+		color: var(--goal-text);
 	}
-	.board {
-		display: flex;
-		flex-direction: column;
-		gap: var(--row-gap);
-		margin-bottom: 1rem;
-	}
-	/* Off the phone layout there's no host-given height to divide up, so the
-	   board would otherwise grow with every guess and push the keyboard down
-	   with it. Pinning it to exactly --visible-rows rows keeps the keyboard
-	   put from first paint and scrolls anything past that. The arithmetic is
-	   the rows themselves — tile, its two borders, and the gaps between — so
-	   it doesn't depend on whatever the heading above happens to measure. */
-	/* A revealed board isn't being played on any more, so it has no reason
-	   to hold itself to a fixed number of rows — and every reason not to,
-	   since the answer is drawn after the last one and a scrollbar is a poor
-	   way to announce it. */
-	.board.revealed {
-		height: auto;
-		overflow: visible;
-	}
-	@media (min-width: 481px) {
-		.board {
-			height: calc(
-				var(--visible-rows) * (var(--tile-max) + 2 * var(--tile-border) + var(--row-gap)) -
-					var(--row-gap)
-			);
-			overflow-y: auto;
-		}
-	}
+	/* A given rung carries a small label beside its tiles, which is shorter
+	   than they are — so this row centres its children rather than letting the
+	   shared rule stretch them. */
 	.row {
-		display: flex;
 		align-items: center;
-		gap: var(--row-gap);
-		width: 100%;
-	}
-	.tile {
-		flex: 1 1 0;
-		max-width: var(--tile-max);
-		min-width: 0;
-		aspect-ratio: 1;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		border: var(--tile-border) solid var(--line);
-		border-radius: 9px;
-		font-weight: 700;
-		font-size: 1.15rem;
 	}
 	.tile.given {
 		border-style: dashed;
@@ -532,83 +509,17 @@
 		white-space: nowrap;
 		flex-shrink: 0;
 	}
+	/* Filled, like the other three boards — a row is read as a pattern, and an
+	   outline colours too little of a tile to carry one. One fill, not two:
+	   the last row used to wear the accent at full strength as a flourish for
+	   the win, and a rung that is settled is settled whether or not it is the
+	   one that reached the target, so a board that shaded its last row was
+	   showing the same state in two colours. The ending is announced by the
+	   sweep, the "solved in N" line and the Copy button instead. */
 	.tile.matched {
-		background: var(--accent);
-		border-color: var(--accent);
-		color: white;
-	}
-	/* The answer opens as one circle growing out of the middle of the word,
-	   rather than flipping letter by letter, so the whole word arrives as a
-	   single shape instead of being spelled out.
-
-	   The circle is a hole in a cover the colour of the board, and the only
-	   thing that moves is that cover's transform. Transform and opacity are
-	   the two properties a browser animates off the main thread, so the row
-	   underneath is painted once and never touched again while the circle
-	   grows. clip-path is the obvious way to write this and is what it used
-	   to do — but Chrome doesn't hardware-accelerate clip-path yet, so every
-	   frame repainted the row's text and rounded tiles, four rows at a time
-	   on a quordle, which is exactly where it stuttered. */
-	.row.opening {
-		position: relative;
-		/* Keeps the cover's ring inside the row it belongs to. */
-		overflow: hidden;
-		/* A flex item only gets an automatic minimum size while its overflow
-		   is visible, so the line above hands this row a minimum height of
-		   zero — and a board that has filled its own height then flattens it
-		   to nothing. This is what keeps the row the height of its tiles. */
-		flex-shrink: 0;
-	}
-	.sweep {
-		/* The middle of the word, which is not the middle of the row: a row is
-		   as wide as the board, while the word only runs as far as its tiles,
-		   and those stop growing at --tile-max. The first half of the min() below
-		   is for a row whose tiles have filled it, the second for one they
-		   haven't. A tile's cap is on its content box, hence the borders. */
-		--word: min(
-			100%,
-			calc(
-				var(--tiles) * (var(--tile-max) + 2 * var(--tile-border)) +
-				(var(--tiles) - 1) * var(--row-gap)
-			)
-		);
-		position: absolute;
-		top: 50%;
-		left: calc(var(--word) / 2);
-		width: var(--word);
-		aspect-ratio: 1;
-		margin: calc(var(--word) / -2) 0 0 calc(var(--word) / -2);
-		border-radius: 50%;
-		/* The ring that hides the rest of the row. It scales along with the
-		   hole, so its width here and the starting scale below together decide
-		   how much is still covered on the first frame: 8000 × 0.08 is 640px
-		   out from a hole a fifth of a tile wide, which buries any row the
-		   board can produce. Bigger numbers only hand the compositor a bigger
-		   layer to carry. */
-		box-shadow: 0 0 0 8000px var(--bg);
-		animation: sweep-open 1000ms cubic-bezier(0.4, 0, 0.2, 1) var(--delay, 0ms) both;
-		pointer-events: none;
-	}
-	@keyframes sweep-open {
-		from {
-			/* A dot rather than nothing, so the ring above still has some
-			   width to hide the row with on the first frame. */
-			transform: scale(0.08);
-		}
-		to {
-			/* Past 1, so the hole clears the corners of the run of tiles
-			   instead of stopping just short of the first and last letters. */
-			transform: scale(1.15);
-		}
-	}
-	@media (prefers-reduced-motion: reduce) {
-		.sweep {
-			animation: none;
-			transform: scale(1.15);
-		}
-	}
-	.tile.input {
-		border-color: #b3aed6;
+		background: var(--accent-soft);
+		border-color: var(--accent-soft);
+		color: var(--accent-soft-ink);
 	}
 	.hint {
 		font-size: 0.85rem;
@@ -655,168 +566,31 @@
 		background: none;
 		color: var(--ink-muted);
 	}
-	.keyboard {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-		flex: 0 0 auto;
-		/* Last child of the flex column, and the only one that doesn't flex —
-		   so it takes its natural height off the bottom and .scroll-area gets
-		   the rest. That's what puts it on the viewport's bottom edge when
-		   the host gives this widget the viewport's height. */
-		background: var(--bg);
-		padding: 0.6rem 0 0.2rem;
-	}
-	.krow {
-		display: flex;
-		gap: 0.35rem;
-	}
-	/* Home row is narrower and centered, same as a physical keyboard —
-	   Enter/Backspace already bookend the bottom row edge-to-edge, so it
-	   needs no inset of its own. */
-	.krow:nth-child(2) {
-		padding: 0 4%;
-	}
-	.krow button {
-		flex: 1 1 0;
-		min-width: 0;
-	}
-	button {
-		/* Narrow side padding: these are single glyphs, and every pixel
-		   spent here across ten keys comes out of the row's shared width —
-		   which is what leaves the two wide keys room to sit at either end
-		   of the bottom row. */
-		padding: 1.1rem 0.2rem;
-		border: none;
-		box-sizing: border-box;
-		border-radius: 9px;
-		background: var(--key-bg);
-		color: var(--ink);
-		text-transform: uppercase;
-		font-weight: 700;
-		font-size: 1.05rem;
-		/* Pinned rather than left at `normal`, which is read off whichever
-		   font draws the key: ⏎ and ⌫ come from a fallback symbol face with
-		   taller metrics than the letters', and a line box that grows with the
-		   glyph would make those two keys decide the whole row's height. */
-		line-height: 1.15;
-		cursor: pointer;
-		transition: background 0.1s;
-		overflow: hidden;
-		white-space: nowrap;
-	}
-	button:hover {
-		background: var(--key-bg-hover);
-	}
-	button.wide {
-		flex: 1.9 1 0;
-	}
-	/* Both wide keys are a single symbol rather than a word — ⏎ and ⌫ — and
-	   both draw a good deal smaller than a capital letter does at the same
-	   type size, so they get scaled up to read as the letters' equals.
-	   Scaling the glyph rather than raising the font size leaves the line box
-	   alone, so these keys and their row stay exactly the size the letter
-	   keys lay them out at. */
-	button.wide .glyph {
-		display: inline-block;
-		transform: scale(1.45);
-	}
 	.won {
 		color: var(--accent);
 		font-weight: 700;
 	}
-	/* Not a keyboard key: the base rule's padding is cut for a single glyph
-	   in a ten-across row, which leaves a two-word label pressed against the
-	   sides of its own button. */
 	button.copy {
-		background: var(--accent);
-		color: white;
-		padding: 0.7rem 1.2rem;
+		background: var(--goal);
+		color: var(--goal-ink);
 	}
 	button.copy:hover {
-		background: var(--accent-hover);
+		background: var(--goal-hover);
 	}
 	.message {
-		color: #b91c1c;
+		color: var(--danger);
 		font-size: 0.85rem;
 	}
-	/* Phone: the website's game page lets the whole page scroll instead of
-	   handing this widget the viewport's height (see .board-card in
-	   g/[id]/+page.svelte), so board and keyboard have to earn their space
-	   — at full size the two together were taller than a phone screen on
-	   their own, which is what made a second, inner scroller necessary in
-	   the first place. Smaller tiles, tighter gaps, shorter keys: the same
-	   layout, roughly a third less tall, and the page scrolls as one. */
+	/* Phone: headings shrink along with the board and keyboard, which give up
+	   their own height through Palette.svelte and Keyboard.svelte. */
 	@media (max-width: 480px) {
-		.ladder {
-			--tile-max: 2.8rem;
-			--row-gap: 0.3rem;
-		}
 		.game-name {
 			font-size: 1.1rem;
 			margin-bottom: 0.35rem;
 		}
 		.header {
+			font-size: 0.95rem;
 			margin-bottom: 0.6rem;
 		}
-		.board {
-			margin-bottom: 0.6rem;
-		}
-		.keyboard {
-			gap: 0.35rem;
-			padding: 0.4rem 0 0.4rem;
-			/* Pinned to the bottom edge of the screen for as long as any part of
-			   the puzzle is on screen. Sticky rather than fixed on purpose: it
-			   keeps its place in the flow, so nothing is ever hidden underneath
-			   it, and it doesn't sit on top of whatever else the page has below
-			   the game. This is why the board scrolls with the page instead of
-			   inside its own pane — the keyboard staying put was the thing that
-			   layout was for, and it has to hold now that the page owns the
-			   scroll. */
-			position: sticky;
-			bottom: 0;
-			z-index: 2;
-		}
-		.krow {
-			gap: 0.25rem;
-		}
-		button {
-			padding: 0.85rem 0.2rem;
-			font-size: 1rem;
-		}
-	}
-	/* Dark, in the two ways a widget can be asked for it. The website sets
-	   `theme` from the reader's own choice (see ThemeToggle), which has to
-	   win even when it disagrees with the device — that's the attribute
-	   rule. An embed on someone else's site sets nothing, and follows the
-	   device — that's the media query, which steps aside the moment a host
-	   asks for light outright. */
-	@media (prefers-color-scheme: dark) {
-		:host(:not([theme='light'])) .ladder {
-			--accent: #9b8cf0;
-			--accent-hover: #b0a3f5;
-			--hit: #3f8a6c;
-			--present: #a8802f;
-			--miss: #4a4553;
-			--ink: #f0ece5;
-			--ink-muted: #a49eae;
-			--line: #322d3a;
-			--key-bg: #322d3a;
-			--key-bg-hover: #3f3949;
-			--bg: #201d26;
-		}
-	}
-	:host([theme='dark']) .ladder {
-		--accent: #9b8cf0;
-		--accent-hover: #b0a3f5;
-		--hit: #3f8a6c;
-		--present: #a8802f;
-		--miss: #4a4553;
-		--ink: #f0ece5;
-		--ink-muted: #a49eae;
-		--line: #322d3a;
-		--key-bg: #322d3a;
-		--key-bg-hover: #3f3949;
-		--bg: #201d26;
 	}
 </style>

@@ -42,7 +42,9 @@
 
 <nav>
 	<div class="nav-inner">
-		<a class="brand" href={resolve('/')} onclick={closeMenu}>🪜 Pzzlr</a>
+		<a class="brand" href={resolve('/')} onclick={closeMenu}>
+			<span class="brand-mark" aria-hidden="true">🪜</span>Pzzlr
+		</a>
 
 		<div class="nav-right">
 			<!-- Primary destinations stay on the bar where there's room for
@@ -259,17 +261,33 @@
 		   the pages doing that math just end up a little taller than exact. */
 		min-height: var(--nav-h);
 		box-sizing: border-box;
-		padding: var(--space-2) var(--space-4);
+		padding: var(--space-3) var(--space-5);
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: var(--space-4);
+		gap: var(--space-5);
 		flex-wrap: wrap;
 	}
+	/* The wordmark is sized against the bar's height budget rather than
+	   against the links beside it: --nav-h is 5rem and .nav-inner spends
+	   var(--space-3) top and bottom, which leaves 56px of content box. At
+	   1.95rem on a line-height of 1 the lockup draws 31px, so it can grow
+	   this far without the bar following it — line-height: 1 is what keeps
+	   that true, since the inherited 1.6 would put the line box at 50px and
+	   leave almost nothing in hand. The ladder is set a size up again: an
+	   emoji reads smaller than a capital at the same type size. */
 	.brand {
 		font-weight: 700;
 		color: var(--color-text);
-		font-size: 1.05rem;
+		font-size: 1.95rem;
+		line-height: 1;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3rem;
+	}
+	.brand-mark {
+		font-size: 1.15em;
+		line-height: 1;
 	}
 	.brand:hover {
 		text-decoration: none;
@@ -278,8 +296,11 @@
 	.nav-links {
 		display: flex;
 		align-items: center;
-		gap: var(--space-4);
-		font-size: 0.9rem;
+		gap: var(--space-6);
+		font-size: 1.05rem;
+		/* Heavier than body text: on a bar this tall, links at the body's
+		   weight read as a caption running along the top. */
+		font-weight: 700;
 	}
 
 	/* Duplicates of links that are already on the bar at this width — only
@@ -297,8 +318,44 @@
 			display: none;
 		}
 	}
+	/* The bar's buttons, sized for the bar rather than for a dense form —
+	   .btn-sm elsewhere on the site is unaffected, since this is scoped to
+	   the layout. Pill-shaped like the CTAs on the site this was modelled
+	   on; every other button on Pzzlr keeps --radius-sm. */
 	.btn-sm {
-		padding: 0.4rem 0.75rem;
-		font-size: 0.85rem;
+		padding: 0.65rem 1.25rem;
+		border-radius: 999px;
+		font-size: 1rem;
+	}
+	.menu-toggle {
+		width: 2.75rem;
+		height: 2.75rem;
+	}
+	.menu-toggle svg {
+		width: 1.3rem;
+		height: 1.3rem;
+	}
+	/* Phones keep the compact bar: --nav-h drops back to 3.5rem there, and
+	   these are the parts that have to come down with it. */
+	@media (max-width: 639px) {
+		.nav-inner {
+			padding: var(--space-2) var(--space-4);
+			gap: var(--space-3);
+		}
+		.brand {
+			font-size: 1.3rem;
+		}
+		.btn-sm {
+			padding: 0.45rem 0.9rem;
+			font-size: 0.9rem;
+		}
+		.menu-toggle {
+			width: 2.25rem;
+			height: 2.25rem;
+		}
+		.menu-toggle svg {
+			width: 1.1rem;
+			height: 1.1rem;
+		}
 	}
 </style>

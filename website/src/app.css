@@ -1,53 +1,73 @@
 :root {
 	--font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 
-	/* A plain light grey, near enough to neutral that the saturated colours
-	   below are the only warmth on the page. White cards read as raised off
-	   it without the surface itself having a colour of its own. */
-	--color-bg: #f1f1f3;
+	/* One grey, used consistently. The page is a cool light grey and white
+	   cards sit on it; the shadows below are tinted to match rather than
+	   carrying the warm brown they still had from the cream era. */
+	--color-bg: #f4f5f7;
 	--color-surface: #ffffff;
 	/* One step down from a surface — for insets and anything that should
 	   read as a well rather than a card. */
-	--color-sunk: #e9e9ec;
-	--color-text: #1b1922;
-	--color-text-muted: #6d6878;
-	--color-border: #e0e0e4;
-	--color-border-strong: #c7c7ce;
+	--color-sunk: #eaecf0;
+	--color-text: #14161c;
+	--color-text-muted: #5f6673;
+	--color-border: #e2e5ea;
+	/* Control boundaries — inputs, secondary buttons. This has to clear 3:1
+	   against the page for the control to be perceivable at all; the grey
+	   that used to be here managed 1.49:1. */
+	--color-border-strong: #858e9c;
 
-	/* Deep indigo, not the neon violet this started as. Saturated enough to
-	   be the brand, dark enough to sit under body text without shouting. */
-	--color-primary: #4b3f9e;
-	--color-primary-hover: #3c3382;
-	--color-primary-soft: #ece9f8;
+	/* The brand is deliberately not a hue. Four modes and three states
+	   already spoken for every position on the wheel — violet, teal, blue,
+	   plum, green, red, amber — so a fifth brand colour had nowhere to stand
+	   that wasn't already saying something else, and putting it on every
+	   button and link made that one colour the whole page. Deep slate keeps
+	   just enough blue to read as interactive without being mistaken for
+	   --color-quordle, which is four times more saturated. Colour on this
+	   site belongs to the games; the chrome is ink. */
+	--color-primary: #2b3a55;
+	--color-primary-hover: #1f2b41;
+	--color-primary-soft: #eaeef5;
 	--color-primary-contrast: #ffffff;
 
-	/* The warm counterweight. Used sparingly and never for navigation — a
-	   favourited star, a number worth finding — so that a second colour
-	   reads as emphasis rather than as a second brand. */
-	--color-accent: #bf6d38;
-	--color-accent-soft: #f7ece2;
+	/* Emphasis is the brand at the same value rather than a fifth hue. The
+	   gold that used to live here was a second warm colour arguing with the
+	   first, and nothing used it for the favourited-star job its comment
+	   described. Written as an alias so it follows the brand into dark. */
+	--color-accent: var(--color-primary);
+	--color-accent-soft: var(--color-primary-soft);
 
-	/* One hue per game type. The badge on a listing, the accent inside the
-	   widget, and the type's own colour anywhere else are all this, so a
-	   ladder looks like a ladder at a glance and the site stops being one
-	   purple. */
-	--color-ladder: #5a49b5;
-	--color-wordle: #2f7a5e;
-	--color-quordle: #2b6d8f;
-	--color-absurdle: #a8543f;
+	/* One hue per game type, held at a common lightness so they read as four
+	   peers. None of them may sit on a semantic hue: --color-wordle used to
+	   be the same value as --color-success, and --color-absurdle a near
+	   neighbour of --color-error, so a healthy badge wore the colour of a
+	   failure. The four also have to stay apart from each other, which is a
+	   live constraint rather than a settled one: when the ladder moved off
+	   violet onto blue it landed beside quordle's blue and the two read as
+	   one game in two shades, so quordle took the violet the ladder had left
+	   — the hues swapped places rather than a fifth being invented. */
+	/* The blue a settled ladder rung wears inside the widget (--accent-soft
+	   in Ladder.svelte, and the same value as the wordle family's --hit): a
+	   letter in its final place is one colour everywhere, and the landing
+	   page draws real rungs rather than a sketch of them. */
+	--color-settled: #42caff;
+	--color-settled-ink: #062441;
 
-	--color-success: #2f7a5e;
-	--color-success-bg: #e4f0ea;
-	--color-error: #a33a32;
-	--color-error-hover: #8a3029;
-	--color-error-bg: #f8e8e6;
-	--color-error-border: #f0c2bd;
-	/* Amber stays amber on a grey page — a caution that reads as neutral
-	   isn't a caution. These are the third semantic pair, alongside success
-	   and error, so the create form's warnings stop hard-coding their own. */
-	--color-warning: #6b5518;
-	--color-warning-bg: #fdf6e3;
-	--color-warning-border: #e6d9a8;
+	--color-ladder: #0071eb;
+	--color-wordle: #0f7d6b;
+	--color-quordle: #6257d2;
+	--color-absurdle: #8c4d9e;
+
+	/* Reserved for state. No mode may borrow these. */
+	--color-success: #1a7a45;
+	--color-success-bg: #e3f2e9;
+	--color-error: #c23934;
+	--color-error-hover: #a52f2a;
+	--color-error-bg: #fbe9e7;
+	--color-error-border: #f2c9c4;
+	--color-warning: #8a6212;
+	--color-warning-bg: #fbf1d8;
+	--color-warning-border: #e8d49a;
 
 	/* A card is told apart from the page by elevation here and by an outline
 	   in dark mode — light comes from above, so a shadow on a dark ground
@@ -55,17 +75,17 @@
 	   edge. Both are tokens so .card can state the intent once. */
 	--card-border: transparent;
 	--card-border-hover: transparent;
-	--shadow-card: 0 1px 2px rgba(24, 24, 28, 0.05), 0 6px 16px -8px rgba(24, 24, 28, 0.12);
-	--shadow-card-hover: 0 2px 4px rgba(24, 24, 28, 0.07), 0 14px 28px -12px rgba(24, 24, 28, 0.2);
+	--shadow-card: 0 1px 2px rgba(20, 22, 28, 0.05), 0 6px 16px -8px rgba(20, 22, 28, 0.12);
+	--shadow-card-hover: 0 2px 4px rgba(20, 22, 28, 0.07), 0 14px 28px -12px rgba(20, 22, 28, 0.2);
 
 	--radius-sm: 7px;
 	--radius-md: 12px;
 	--radius-lg: 18px;
-	/* Warm-tinted rather than neutral black, so a raised card still looks
-	   like it's sitting on paper. */
-	--shadow-sm: 0 1px 2px rgba(41, 33, 24, 0.05);
-	--shadow-md: 0 8px 24px -12px rgba(41, 33, 24, 0.18);
-	--shadow-lg: 0 20px 48px -24px rgba(41, 33, 24, 0.28);
+	/* Tinted with the same cool grey as the page. These were warm brown,
+	   chosen for a cream background the site no longer has. */
+	--shadow-sm: 0 1px 2px rgba(20, 22, 28, 0.06);
+	--shadow-md: 0 8px 24px -12px rgba(20, 22, 28, 0.18);
+	--shadow-lg: 0 20px 48px -24px rgba(20, 22, 28, 0.28);
 
 	--space-1: 0.25rem;
 	--space-2: 0.5rem;
@@ -77,7 +97,13 @@
 	--space-10: 2.5rem;
 	--space-12: 3rem;
 
-	--nav-h: 3.25rem;
+	/* The bar is deliberately tall — a band of its own rather than a strip of
+	   chrome, the way jennalert.com carries its header. Pages that size
+	   themselves against "the viewport minus the nav" read this token, so it
+	   has to move here rather than in the layout's own CSS. Phones get the old
+	   height back below: 80px of chrome on a 667px screen is height the board
+	   and the on-screen keyboard need more than the bar does. */
+	--nav-h: 5rem;
 }
 
 /* Dark. Written once as a set of token overrides and applied two ways: to
@@ -88,36 +114,36 @@
    $lib/theme.svelte.ts. */
 @media (prefers-color-scheme: dark) {
 	:root:not([data-theme='light']) {
-		--color-bg: #17151c;
-		--color-surface: #201d26;
-		--color-sunk: #2a2631;
-		--color-text: #f0ece5;
-		--color-text-muted: #a49eae;
-		--color-border: #322d3a;
-		--color-border-strong: #4a4356;
+		--color-bg: #101217;
+		--color-surface: #171a21;
+		--color-sunk: #1e222b;
+		--color-text: #e8eaee;
+		--color-text-muted: #9aa2b1;
+		--color-border: #262b35;
+		--color-border-strong: #626c7c;
 
-		--color-primary: #9b8cf0;
-		--color-primary-hover: #b0a3f5;
-		--color-primary-soft: #2a2447;
-		--color-primary-contrast: #17151c;
+		--color-primary: #cdd8ea;
+		--color-primary-hover: #e2e9f4;
+		--color-primary-soft: #232c3d;
+		--color-primary-contrast: #101217;
 
-		--color-accent: #e08c52;
-		--color-accent-soft: #33251c;
+		--color-settled: #1fbfff;
+		--color-settled-ink: #062441;
 
-		--color-ladder: #8b7ae0;
-		--color-wordle: #4fa583;
-		--color-quordle: #4f9ac0;
-		--color-absurdle: #d18163;
+		--color-ladder: #66b0ff;
+		--color-wordle: #3fb39c;
+		--color-quordle: #9a91f0;
+		--color-absurdle: #c48fd6;
 
-		--color-success: #4fa583;
-		--color-success-bg: #1f3a30;
-		--color-error: #e08379;
-		--color-error-hover: #ea968d;
-		--color-error-bg: #3a2422;
-		--color-error-border: #5c342f;
+		--color-success: #4cb37a;
+		--color-success-bg: #16301f;
+		--color-error: #ef8078;
+		--color-error-hover: #f5978f;
+		--color-error-bg: #341d1c;
+		--color-error-border: #55302d;
 		--color-warning: #e3c37a;
-		--color-warning-bg: #332b16;
-		--color-warning-border: #57492a;
+		--color-warning-bg: #302713;
+		--color-warning-border: #55482a;
 
 		--card-border: var(--color-border);
 		--card-border-hover: var(--color-border-strong);
@@ -131,36 +157,36 @@
 }
 
 :root[data-theme='dark'] {
-	--color-bg: #17151c;
-	--color-surface: #201d26;
-	--color-sunk: #2a2631;
-	--color-text: #f0ece5;
-	--color-text-muted: #a49eae;
-	--color-border: #322d3a;
-	--color-border-strong: #4a4356;
+	--color-bg: #101217;
+	--color-surface: #171a21;
+	--color-sunk: #1e222b;
+	--color-text: #e8eaee;
+	--color-text-muted: #9aa2b1;
+	--color-border: #262b35;
+	--color-border-strong: #626c7c;
 
-	--color-primary: #9b8cf0;
-	--color-primary-hover: #b0a3f5;
-	--color-primary-soft: #2a2447;
-	--color-primary-contrast: #17151c;
+	--color-primary: #cdd8ea;
+	--color-primary-hover: #e2e9f4;
+	--color-primary-soft: #232c3d;
+	--color-primary-contrast: #101217;
 
-	--color-accent: #e08c52;
-	--color-accent-soft: #33251c;
+	--color-settled: #1fbfff;
+	--color-settled-ink: #062441;
 
-	--color-ladder: #8b7ae0;
-	--color-wordle: #4fa583;
-	--color-quordle: #4f9ac0;
-	--color-absurdle: #d18163;
+	--color-ladder: #66b0ff;
+	--color-wordle: #3fb39c;
+	--color-quordle: #9a91f0;
+	--color-absurdle: #c48fd6;
 
-	--color-success: #4fa583;
-	--color-success-bg: #1f3a30;
-	--color-error: #e08379;
-	--color-error-hover: #ea968d;
-	--color-error-bg: #3a2422;
-	--color-error-border: #5c342f;
+	--color-success: #4cb37a;
+	--color-success-bg: #16301f;
+	--color-error: #ef8078;
+	--color-error-hover: #f5978f;
+	--color-error-bg: #341d1c;
+	--color-error-border: #55302d;
 	--color-warning: #e3c37a;
-	--color-warning-bg: #332b16;
-	--color-warning-border: #57492a;
+	--color-warning-bg: #302713;
+	--color-warning-border: #55482a;
 
 	--card-border: var(--color-border);
 	--card-border-hover: var(--color-border-strong);
@@ -216,6 +242,15 @@ p {
 a {
 	color: var(--color-primary);
 	text-decoration: none;
+}
+
+/* Now that the brand is near-neutral, a link in running text is 1.58:1 from
+   the text around it — close enough that colour alone no longer says "link".
+   Prose links carry an underline at rest; nav and footer links are already
+   identified by where they sit. */
+.prose a {
+	text-decoration: underline;
+	text-underline-offset: 0.15em;
 }
 
 a:hover {
@@ -411,4 +446,11 @@ select:focus {
 	border-radius: var(--radius-sm);
 	padding: var(--space-2) var(--space-3);
 	font-size: 0.9rem;
+}
+
+/* Phones: see the --nav-h comment above. */
+@media (max-width: 639px) {
+	:root {
+		--nav-h: 3.5rem;
+	}
 }

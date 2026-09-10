@@ -1,15 +1,42 @@
 ---
 name: pzzlr-dev
-description: Dev workflow reference for the pzzlr word-ladder repo (graphbuilder/ Go tool, sdk/ embeddable Svelte widget, website/ SvelteKit app). Use this whenever working in this repo and the task involves starting the dev server, running tests (vitest or go test), type/lint checks, regenerating word graphs from the ESDB word list (including the 50/60/80 dictionary size tiers), building or syncing the SDK widget into the website, Cloudflare D1 database commands (generate/migrate/seed, local or remote), smoke-testing a game's daily-puzzle API endpoint, or visually QA-ing an auth-gated or rare-scenario page. Trigger even if the user doesn't name these commands explicitly — e.g. "run the tests", "the graphs seem stale", "check today's puzzle for game X", "wire up the new SDK build", "reset my local db", "add a smaller dictionary option".
+description: Dev workflow reference for the pzzlr word-ladder repo (graphbuilder/ Go tool, sdk/ embeddable Svelte widget, website/ SvelteKit app). Use this whenever working in this repo and the task involves starting the dev server, running tests (vitest or go test), type/lint checks, regenerating word graphs from the ESDB word list (including the 50/60/80 dictionary size tiers), building or syncing the SDK widget into the website, Cloudflare D1 database commands (generate/migrate/seed, local or remote), smoke-testing a game's daily-puzzle API endpoint, or setting up an auth-gated or rare-scenario page for Mark to look at. Trigger even if the user doesn't name these commands explicitly — e.g. "run the tests", "the graphs seem stale", "check today's puzzle for game X", "wire up the new SDK build", "reset my local db", "add a smaller dictionary option".
 ---
 
 # pzzlr dev workflows
 
 Three packages, each with its own commands — run everything from that package's directory (`cd website && ...`, not from repo root).
 
+## Mark does the browser checking
+
+**Don't drive the browser on this project.** Mark looks at the site himself
+and judges it — that is his half of the work, and he has asked for it twice:
+once for going to the page to measure a width that was declared in CSS I had
+already read, and once, standing, as "let me do browser checks".
+
+So the loop is: make the change, run the things that fail loudly on their own
+(the SDK build, `npm run check`, the vitest suite, `npm run lint`), then hand
+over a short list of what to look at — naming the parts most likely to be
+wrong and anything that could not be confirmed without looking. Aesthetic
+questions especially — colour, weight, spacing, whether something reads as
+flat — are answered by him looking, not by a screenshot.
+
+Two things this does not change:
+
+- **Never claim something works that wasn't seen working.** If a thing was
+  confirmed only indirectly, say so in the same sentence as the claim.
+- **Questions about what the code says** — a width, a token, a default,
+  which file owns what — are answered by reading the source. Loading the
+  page to measure a constant that is written down is slower and proves
+  nothing extra.
+
 ## Dev server
 
-Already configured as `pzzlr-website` in `.claude/launch.json` (port 5173). Use the Browser-pane preview tool (`preview_start` with `{name: "pzzlr-website"}`) rather than `Bash` so it runs supervised and you can read its logs/console — don't hand-roll `npm run dev` in a background Bash call for this.
+Already configured as `pzzlr-website` in `.claude/launch.json` (port 5173).
+Start it with the Browser-pane preview tool (`preview_start` with
+`{name: "pzzlr-website"}`) rather than a hand-rolled `npm run dev` in a
+background Bash call, so it runs supervised and its logs and console are
+readable — then leave the looking to Mark.
 
 ## Tests
 
@@ -56,7 +83,15 @@ cd ../website && npm run sync-sdk
 
 **Both widgets are shadow-DOM custom elements, which default to `display: inline`.** Their root `.ladder`/`.wordle` div uses `width: 100%` to fill whatever contains it (capped by its own `max-width`, currently 26rem) — that only resolves against a concrete width if the *host element* participates in layout as a block box, so both components set `:host { display: block; width: 100%; box-sizing: border-box; }` in their `<style>`. Dropping that rule silently breaks responsive sizing (the widget goes back to sizing purely off its content, e.g. the board-card overflow bug below), so keep it if you touch the root styles.
 
-**Tile and on-screen-keyboard sizing is flex-based, not fixed-px, on purpose.** Word length varies 3–8 across both engines, and length-8 boards (`8 × 2.6rem` tiles + gaps ≈ 23.6rem) don't fit the old fixed `max-width: 22rem` wrapper — and a fixed-width board never fits a narrow mobile viewport either. `.tile` uses `flex: 1 1 0; max-width: 2.6rem; aspect-ratio: 1` (grows to fill the row up to a comfortable cap, shrinks below it only when the row itself is narrower) and `.krow button` uses `flex: 1; min-width: 0` (same idea for keyboard keys, with `button.wide` — Enter/Backspace — at `flex: 1.8`). The `overflow: hidden; white-space: nowrap` on `button`, plus `text-overflow: ellipsis` scoped to `.wide`, is what keeps "Enter" from visibly bleeding past its own rounded corners on the tightest realistic case (an 8-letter word's keyboard on a 375px phone) — it degrades to "ENT…" there instead, never spilling outside the box. If you touch this CSS, re-check both that tightest case *and* the common case (a 4–5 letter word) at 375px width, since the two pull in opposite directions (cap too small wastes space normally; cap too generous overflows on 8-letter boards).
+**The four widgets share their keyboard, palette and board CSS — change it once, not four times.** `Ladder.svelte`, `Wordle.svelte`, `Quordle.svelte` and `Absurdle.svelte` are near-duplicates, and a rule edited in one used to be genuinely absent from the other three. What they have in common now lives in three files they each render:
+
+- `Keyboard.svelte` — the on-screen keyboard, markup and all its CSS. Props are `keyStatus` (a letter's best result so far; ladder omits it and its keys stay plain) and the three handlers `onLetter`/`onEnter`/`onBackspace`. The behaviour is still `keyboard.ts`; this is only the keyboard's face. Each widget still decides *whether* to show it, with its own `{#if}` around the tag.
+- `Palette.svelte` — every colour token, in one light block and one dark pair (media query for embeds following the device, `[theme]` attribute for the website's own toggle), plus the shared row geometry (`--tile-max`, `--row-gap`, `--tile-border`, `--tile-radius`, `--tile-font`, `--visible-rows`). A widget declares only its own accent, as `--accent-light`/`--accent-dark` and their hover pair on `:host`; the palette picks between them.
+- `BoardStyles.svelte` — `.board`, `.row`, `.tile` and the reveal animation, in a `:global` block since the elements belong to whichever widget rendered them.
+
+Palette and BoardStyles have no markup: they exist so Svelte drops one copy of their stylesheet into each widget's shadow root. A widget still overrules any of it from its own `<style>` — Svelte adds a scoping class to the widget's selectors, so `.tile` written in `Ladder.svelte` always outranks the plain `.tile` in the shared file, whichever stylesheet the browser saw first. Anything a board genuinely does differently (the ladder's dashed given rungs, quordle's smaller tiles) belongs at home; anything all four agree on belongs in the shared file. Note quordle calls each of its four boards a `.mini`, so that `.board` can mean the one thing `BoardStyles.svelte` sizes.
+
+**Tile and on-screen-keyboard sizing is flex-based, not fixed-px, on purpose.** Word length varies 3–8 across both engines, and length-8 boards (`8 × 2.6rem` tiles + gaps ≈ 23.6rem) don't fit the old fixed `max-width: 22rem` wrapper — and a fixed-width board never fits a narrow mobile viewport either. `.tile` uses `flex: 1 1 0; max-width: 2.6rem; aspect-ratio: 1` (grows to fill the row up to a comfortable cap, shrinks below it only when the row itself is narrower) and `.krow button` (in `Keyboard.svelte`) uses `flex: 1; min-width: 0` (same idea for keyboard keys, with `button.wide` — Enter/Backspace — at `flex: 1.8`). The `overflow: hidden; white-space: nowrap` on `button`, plus `text-overflow: ellipsis` scoped to `.wide`, is what keeps "Enter" from visibly bleeding past its own rounded corners on the tightest realistic case (an 8-letter word's keyboard on a 375px phone) — it degrades to "ENT…" there instead, never spilling outside the box. If you touch this CSS, re-check both that tightest case *and* the common case (a 4–5 letter word) at 375px width, since the two pull in opposite directions (cap too small wastes space normally; cap too generous overflows on 8-letter boards).
 
 **The website wraps each widget in a `.board-card`** (in `+page.svelte` and `g/[id]/+page.svelte`) that must give it a concrete resolved width too: `width: min(100%, 26rem); box-sizing: border-box` — not `display: inline-block`, which sizes to content and doesn't shrink for a narrow viewport, which is exactly how the mobile overflow bug happened (the card just became wider than the screen instead of ever shrinking).
 
@@ -149,13 +184,13 @@ curl -s -X POST "http://localhost:5173/api/games/<id>/wordle/guess" \
 curl -s "http://localhost:5173/api/games/<id>/wordle/reveal?token=$TOKEN" | python3 -m json.tool  # { "target": "..." }
 ```
 
-## Visually QA-ing a scenario that needs a specific/rare game, without logging in
+## Setting up a scenario that needs a specific/rare game, without logging in
 
-`/create` and the "Manage this game" panel on `/g/[id]` require a signed-in session, and creating an account or signing in isn't something to do just to poke at the UI. For visual QA of a specific scenario — a particular word length, dictionary size, or mode that doesn't happen to already exist among the current games — insert a throwaway row directly into `game_config`, view it at `/g/<id>` (game pages themselves don't require auth for public games), then delete the row:
+`/create` and the "Manage this game" panel on `/g/[id]` require a signed-in session, and creating an account or signing in isn't something to do just to poke at the UI. To put a specific scenario in front of Mark — a particular word length, dictionary size, or mode that doesn't happen to already exist among the current games — insert a throwaway row directly into `game_config`, view it at `/g/<id>` (game pages themselves don't require auth for public games), then delete the row:
 
 ```bash
 cd website && npx wrangler d1 execute pzzlr --local --command "insert into game_config (id, name, mode, target, length, dictionary_size, min_steps, rungs_given, max_guesses, public, created_at) values ('qa-probe', 'QA probe', 'ladder', 'blustery', 8, 50, 4, 1, 6, 1, unixepoch()*1000);"
-# ... view http://localhost:5173/g/qa-probe, screenshot, etc ...
+# ... hand Mark http://localhost:5173/g/qa-probe, and delete the row when he's done ...
 cd website && npx wrangler d1 execute pzzlr --local --command "delete from game_config where id = 'qa-probe';"
 ```
 

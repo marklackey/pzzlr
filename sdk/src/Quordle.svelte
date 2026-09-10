@@ -2,13 +2,22 @@
 
 <script lang="ts">
 	import type { LetterResult } from './types';
-	import { KEYBOARD_ROWS, createKeyboardHandlers } from './keyboard';
+	import { createKeyboardHandlers } from './keyboard';
+	import Keyboard from './Keyboard.svelte';
+	import Palette from './Palette.svelte';
+	import BoardStyles from './BoardStyles.svelte';
 	import { authHeaders } from './http';
 	import { bestLetterStatus } from './scoring';
 	import { createShareCopy } from './share';
 	import { scrollIntoViewWithin } from './scroll';
 
-	let { apibase = '', game = '', date = '', apikey = '', revealed = '' } = $props<{
+	let {
+		apibase = '',
+		game = '',
+		date = '',
+		apikey = '',
+		revealed = ''
+	} = $props<{
 		apibase?: string;
 		/** Id of a stored game config (mode: "quordle"). See Ladder.svelte for why this is required. */
 		game: string;
@@ -125,8 +134,7 @@
 				solved: boolean;
 			} | null;
 			guesses = resumed?.guesses ?? [];
-			boardResults =
-				resumed?.boardResults ?? Array.from({ length: boardCount }, () => []);
+			boardResults = resumed?.boardResults ?? Array.from({ length: boardCount }, () => []);
 			// Which guess solved each board falls out of the rows themselves —
 			// the first all-correct one — so there's nothing extra to store.
 			solvedLive = [];
@@ -138,8 +146,7 @@
 			for (let i = 0; i < boardCount; i++) rowEls.push([]);
 			revealedTargets = [];
 			currentGuess = '';
-			status =
-				resumed?.solved || guesses.length >= maxGuesses ? 'finished' : 'playing';
+			status = resumed?.solved || guesses.length >= maxGuesses ? 'finished' : 'playing';
 			// A board set that was already over when this loaded still owes the
 			// player the words it ended on.
 			if (status === 'finished' && !resumed?.solved) await reveal();
@@ -214,15 +221,6 @@
 		}
 	}
 
-	// A tapped key shouldn't keep the focus: a player who clicks their way
-	// through a word and then reaches for Enter on their own keyboard would
-	// otherwise press whichever key they last clicked as well. Preventing the
-	// mousedown default stops the button taking focus without stopping the
-	// click, and leaves tabbing to the keys working as it did.
-	function keepFocusOffKeys(e: MouseEvent) {
-		e.preventDefault();
-	}
-
 	const { typeLetter, backspace, handleKeydown } = createKeyboardHandlers({
 		isActive: () => status === 'playing' && revealedWords.length === 0,
 		currentGuess: () => currentGuess,
@@ -249,7 +247,9 @@
 			const shown = boardSolvedAt[i] !== null ? rows.slice(0, boardSolvedAt[i]!) : rows;
 			return shown
 				.map((row) =>
-					row.map(({ status: s }) => (s === 'correct' ? '🟩' : s === 'present' ? '🟨' : '⬛')).join('')
+					row
+						.map(({ status: s }) => (s === 'correct' ? '🟩' : s === 'present' ? '🟨' : '⬛'))
+						.join('')
 				)
 				.join(' ');
 		});
@@ -268,7 +268,7 @@
 	// that's an intentional trade rather than a bug to chase. This only
 	// reacts to board count, though — a phone-width viewport additionally
 	// scales each board's height off the viewport itself (never below a
-	// 2-row floor) via a plain CSS media query on .board-rows below, since
+	// 2-row floor) via a plain CSS media query on .mini-rows below, since
 	// viewport size isn't available to compute here at render time.
 	function visibleRows(count: number, max: number): number {
 		if (count <= 4) return max;
@@ -286,7 +286,7 @@
 	const boardMinWidth = $derived(tileSize * wordLength + 0.3 * (wordLength - 1) + 1.2);
 
 	// Refs for keeping the row you're typing into on screen. Each board scrolls
-	// independently (see .board-rows), so these are per board — index i is the
+	// independently (see .mini-rows), so these are per board — index i is the
 	// board, and rowEls[i][n] its nth row. Plain vars rather than $state —
 	// nothing renders from them, they're only read in the effect below, which
 	// reruns off `guesses` and so always sees refs the DOM has already updated.
@@ -310,9 +310,12 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
+<Palette />
+<BoardStyles />
+
 <div
 	class="quordle"
-	style="--tile-size: {tileSize}rem; --visible-rows: {rowsVisible}; --board-min-width: {boardMinWidth}rem;"
+	style="--tile-max: {tileSize}rem; --visible-rows: {rowsVisible}; --board-min-width: {boardMinWidth}rem;"
 >
 	{#if status === 'loading'}
 		<p>Loading puzzle…</p>
@@ -331,12 +334,13 @@
 				<span class="guess-count">{guesses.length}/{maxGuesses} guesses</span>
 			</div>
 
-			<!-- --tiles is the word's length, which the circle's geometry below
-			     is written in terms of; it's inherited by every row here. -->
+			<!-- --tiles is the word's length, which the reveal circle's geometry
+			     is written in terms of (see .sweep in BoardStyles.svelte); it's
+			     inherited by every row here. -->
 			<div class="boards" style="--tiles: {wordLength}">
 				{#each Array.from({ length: boardCount }) as _, i (i)}
-					<div class="board" class:solved={boardSolvedAt[i] !== null}>
-						<div class="board-rows" bind:this={boardRowsEls[i]}>
+					<div class="mini" class:solved={boardSolvedAt[i] !== null}>
+						<div class="mini-rows" bind:this={boardRowsEls[i]}>
 							{#each Array.from({ length: maxGuesses }) as _, rowIndex (rowIndex)}
 								{@const opening = solvedLive[i] && boardSolvedAt[i] === rowIndex + 1}
 								{#if boardSolvedAt[i] !== null && rowIndex >= boardSolvedAt[i]}
@@ -363,8 +367,7 @@
 										{/each}
 										<!-- Each board opens a beat after the one before it, so
 										     four answers land as a sequence, not a flash. -->
-										<span class="sweep" style="--delay: {i * 130}ms" aria-hidden="true"
-										></span>
+										<span class="sweep" style="--delay: {i * 130}ms" aria-hidden="true"></span>
 									</div>
 								{:else if rowIndex === guesses.length && status === 'playing'}
 									<div class="row" bind:this={rowEls[i][rowIndex]}>
@@ -382,9 +385,9 @@
 							{/each}
 						</div>
 						{#if boardSolvedAt[i] !== null}
-							<p class="board-status solved">guess {boardSolvedAt[i]}</p>
+							<p class="mini-status solved">guess {boardSolvedAt[i]}</p>
 						{:else if status === 'finished' && revealedTargets[i]}
-							<p class="board-status lost">{revealedTargets[i].toUpperCase()}</p>
+							<p class="mini-status lost">{revealedTargets[i].toUpperCase()}</p>
 						{/if}
 					</div>
 				{/each}
@@ -405,44 +408,7 @@
 		</div>
 
 		{#if status !== 'finished'}
-			<div class="keyboard">
-				{#each KEYBOARD_ROWS as krow, i (i)}
-					<div class="krow">
-						{#each krow as key (key)}
-							{#if key === 'enter'}
-								<button
-									type="button"
-									class="wide enter"
-									aria-label="Enter"
-									onmousedown={keepFocusOffKeys}
-									onclick={submitGuess}
-								>
-									<span class="glyph">&#9166;</span>
-								</button>
-							{:else if key === 'back'}
-								<button
-									type="button"
-									class="wide back"
-									aria-label="Delete"
-									onmousedown={keepFocusOffKeys}
-									onclick={backspace}
-								>
-									<span class="glyph">&#9003;</span>
-								</button>
-							{:else}
-								<button
-									type="button"
-									class={keyStatus(key)}
-									onmousedown={keepFocusOffKeys}
-									onclick={() => typeLetter(key)}
-								>
-									{key}
-								</button>
-							{/if}
-						{/each}
-					</div>
-				{/each}
-			</div>
+			<Keyboard {keyStatus} onLetter={typeLetter} onEnter={submitGuess} onBackspace={backspace} />
 		{/if}
 	{/if}
 </div>
@@ -452,6 +418,15 @@
 	   percentage width — without this, .quordle's width:100% below has
 	   nothing concrete to size against. */
 	:host {
+		/* The only colours this game picks for itself; Palette.svelte builds
+		   the rest of both themes around them. Quordle wears the violet the
+		   ladder used to, having swapped with it when the ladder went blue
+		   and the two turned into one colour in a listing — see the mode
+		   hues in the website's app.css, which these have to match. */
+		--accent-light: #6257d2;
+		--accent-hover-light: #5348c4;
+		--accent-dark: #9a91f0;
+		--accent-hover-dark: #ada6f4;
 		/* A flex column rather than a plain block so the root below can fill
 		   whatever height the host ends up with — including a height it got
 		   by being stretched as someone else's flex item, which a percentage
@@ -465,26 +440,13 @@
 		box-sizing: border-box;
 	}
 	.quordle {
-		--accent: #2b6d8f;
-		--accent-hover: #235a77;
-		--hit: #3f7f63;
-		--present: #b8883a;
-		--miss: #6c6675;
-		--ink: #1b1922;
-		--ink-muted: #6d6878;
-		--line: #e0e0e4;
-		--key-bg: #e6e6ea;
-		--key-bg-hover: #d9d9df;
-		--bg: #fff;
-		/* Row geometry, shared by the tiles themselves and by the desktop
-		   height below that reserves room for --visible-rows of them. */
-		--tile-border: 2px;
-		font-family:
-			-apple-system,
-			BlinkMacSystemFont,
-			'Segoe UI',
-			Roboto,
-			sans-serif;
+		/* Four boards across means tiles a good deal smaller than a single
+		   board's, so this game sets its own row geometry: --tile-max comes
+		   from tileRem() on the element itself, and the rest scales with it. */
+		--row-gap: 0.3rem;
+		--tile-radius: 6px;
+		--tile-font: calc(var(--tile-max) * 0.42);
+		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 		width: 100%;
 		max-width: 64rem;
 		box-sizing: border-box;
@@ -494,8 +456,8 @@
 		flex-direction: column;
 		/* Fills the host: a definite height given by an embed, or the one
 		   the website's phone layout stretches it to (see .board-card in
-		   g/[id]/+page.svelte). Then .scroll-area/.keyboard below split
-		   that height and the keyboard sits on the bottom edge. With no
+		   g/[id]/+page.svelte). Then .scroll-area below and the keyboard
+		   split that height and the keyboard sits on the bottom edge. With no
 		   height to fill, this is just content height and the widget sizes
 		   to itself. */
 		flex: 1 1 auto;
@@ -531,21 +493,22 @@
 		gap: 0.85rem;
 		margin-bottom: 1rem;
 	}
-	.board {
+	.mini {
 		display: flex;
 		flex-direction: column;
 		gap: 0.25rem;
 		min-width: 0;
 	}
-	.board-rows {
+	.mini-rows {
 		display: flex;
 		flex-direction: column;
-		gap: 0.3rem;
+		gap: var(--row-gap);
 		overflow-y: auto;
 		/* Shows exactly --visible-rows rows before scrolling the rest — see
 		   the visibleRows()/tileRem() comment above for the reasoning. */
 		max-height: calc(
-			var(--visible-rows) * (var(--tile-size) + 2 * var(--tile-border) + 0.3rem) - 0.3rem
+			var(--visible-rows) * (var(--tile-max) + 2 * var(--tile-border) + var(--row-gap)) -
+				var(--row-gap)
 		);
 	}
 	/* --visible-rows only reacts to board count, not viewport — a low-board-
@@ -560,240 +523,51 @@
 	   whatever --visible-rows already allows so this never shows *more*
 	   rows than the board-count stage above would. */
 	@media (max-width: 480px) {
-		.board-rows {
+		.mini-rows {
 			max-height: clamp(
-				calc(2 * (var(--tile-size) + 2 * var(--tile-border) + 0.3rem) - 0.3rem),
+				calc(2 * (var(--tile-max) + 2 * var(--tile-border) + var(--row-gap)) - var(--row-gap)),
 				20dvh,
-				calc(var(--visible-rows) * (var(--tile-size) + 2 * var(--tile-border) + 0.3rem) - 0.3rem)
+				calc(
+					var(--visible-rows) * (var(--tile-max) + 2 * var(--tile-border) + var(--row-gap)) -
+						var(--row-gap)
+				)
 			);
 		}
 	}
-	.row {
-		display: flex;
-		gap: 0.3rem;
-		width: 100%;
-	}
-	.tile {
-		flex: 1 1 0;
-		max-width: var(--tile-size);
-		min-width: 0;
-		aspect-ratio: 1;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		border: var(--tile-border) solid var(--line);
-		border-radius: 6px;
-		font-weight: 700;
-		font-size: calc(var(--tile-size) * 0.42);
-	}
-	/* The answer opens as one circle growing out of the middle of the word,
-	   rather than flipping letter by letter, so the whole word arrives as a
-	   single shape instead of being spelled out.
-
-	   The circle is a hole in a cover the colour of the board, and the only
-	   thing that moves is that cover's transform. Transform and opacity are
-	   the two properties a browser animates off the main thread, so the row
-	   underneath is painted once and never touched again while the circle
-	   grows. clip-path is the obvious way to write this and is what it used
-	   to do — but Chrome doesn't hardware-accelerate clip-path yet, so every
-	   frame repainted the row's text and rounded tiles, four rows at a time
-	   on a quordle, which is exactly where it stuttered. */
-	.row.opening {
-		position: relative;
-		/* Keeps the cover's ring inside the row it belongs to. */
-		overflow: hidden;
-		/* A flex item only gets an automatic minimum size while its overflow
-		   is visible, so the line above hands this row a minimum height of
-		   zero — and a board that has filled its own height then flattens it
-		   to nothing. This is what keeps the row the height of its tiles. */
-		flex-shrink: 0;
-	}
-	.sweep {
-		/* The middle of the word, which is not the middle of the row: a row is
-		   as wide as the board, while the word only runs as far as its tiles,
-		   and those stop growing at --tile-size. The first half of the min() below
-		   is for a row whose tiles have filled it, the second for one they
-		   haven't. A tile's cap is on its content box, hence the borders. */
-		--word: min(
-			100%,
-			calc(
-				var(--tiles) * (var(--tile-size) + 2 * var(--tile-border)) +
-				(var(--tiles) - 1) * 0.3rem
-			)
-		);
-		position: absolute;
-		top: 50%;
-		left: calc(var(--word) / 2);
-		width: var(--word);
-		aspect-ratio: 1;
-		margin: calc(var(--word) / -2) 0 0 calc(var(--word) / -2);
-		border-radius: 50%;
-		/* The ring that hides the rest of the row. It scales along with the
-		   hole, so its width here and the starting scale below together decide
-		   how much is still covered on the first frame: 8000 × 0.08 is 640px
-		   out from a hole a fifth of a tile wide, which buries any row the
-		   board can produce. Bigger numbers only hand the compositor a bigger
-		   layer to carry. */
-		box-shadow: 0 0 0 8000px var(--bg);
-		animation: sweep-open 1000ms cubic-bezier(0.4, 0, 0.2, 1) var(--delay, 0ms) both;
-		pointer-events: none;
-	}
-	@keyframes sweep-open {
-		from {
-			/* A dot rather than nothing, so the ring above still has some
-			   width to hide the row with on the first frame. */
-			transform: scale(0.08);
-		}
-		to {
-			/* Past 1, so the hole clears the corners of the run of tiles
-			   instead of stopping just short of the first and last letters. */
-			transform: scale(1.15);
-		}
-	}
-	@media (prefers-reduced-motion: reduce) {
-		.sweep {
-			animation: none;
-			transform: scale(1.15);
-		}
-	}
-	.tile.input {
-		border-color: #b3aed6;
-	}
-	.tile.filled.correct {
-		background: var(--hit);
-		border-color: var(--hit);
-		color: white;
-	}
-	.tile.filled.present {
-		background: var(--present);
-		border-color: var(--present);
-		color: white;
-	}
-	.tile.filled.absent {
-		background: var(--miss);
-		border-color: var(--miss);
-		color: white;
-	}
-	.board-status {
+	.mini-status {
 		margin: 0;
 		font-size: 0.7rem;
 		text-align: center;
 		color: var(--ink-muted);
 	}
-	.board-status.solved {
-		color: var(--hit);
+	.mini-status.solved {
+		color: var(--hit-text);
 		font-weight: 700;
 	}
-	.board-status.lost {
-		color: var(--miss);
+	.mini-status.lost {
+		color: var(--ink-muted);
 		font-weight: 700;
 		letter-spacing: 0.03em;
 	}
-	.keyboard {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-		flex: 0 0 auto;
-		/* Last child of the flex column, and the only one that doesn't flex —
-		   so it takes its natural height off the bottom and .scroll-area gets
-		   the rest. That's what puts it on the viewport's bottom edge when
-		   the host gives this widget the viewport's height. */
-		background: var(--bg);
-		padding: 0.6rem 0 0.2rem;
-	}
-	.krow {
-		display: flex;
-		gap: 0.35rem;
-	}
-	/* Home row is narrower and centered, same as a physical keyboard —
-	   Enter/Backspace already bookend the bottom row edge-to-edge, so it
-	   needs no inset of its own. */
-	.krow:nth-child(2) {
-		padding: 0 4%;
-	}
-	.krow button {
-		flex: 1 1 0;
-		min-width: 0;
-	}
-	button {
-		/* Narrow side padding: these are single glyphs, and every pixel
-		   spent here across ten keys comes out of the row's shared width —
-		   which is what leaves the two wide keys room to sit at either end
-		   of the bottom row. */
-		padding: 1.1rem 0.2rem;
-		border: none;
-		box-sizing: border-box;
-		border-radius: 9px;
-		background: var(--key-bg);
-		color: var(--ink);
-		text-transform: uppercase;
-		font-weight: 700;
-		font-size: 1.05rem;
-		/* Pinned rather than left at `normal`, which is read off whichever
-		   font draws the key: ⏎ and ⌫ come from a fallback symbol face with
-		   taller metrics than the letters', and a line box that grows with the
-		   glyph would make those two keys decide the whole row's height. */
-		line-height: 1.15;
-		cursor: pointer;
-		transition: background 0.1s;
-		overflow: hidden;
-		white-space: nowrap;
-	}
-	button:hover {
-		background: var(--key-bg-hover);
-	}
-	button.wide {
-		flex: 1.9 1 0;
-	}
-	/* Both wide keys are a single symbol rather than a word — ⏎ and ⌫ — and
-	   both draw a good deal smaller than a capital letter does at the same
-	   type size, so they get scaled up to read as the letters' equals.
-	   Scaling the glyph rather than raising the font size leaves the line box
-	   alone, so these keys and their row stay exactly the size the letter
-	   keys lay them out at. */
-	button.wide .glyph {
-		display: inline-block;
-		transform: scale(1.45);
-	}
-	button.correct {
-		background: var(--hit);
-		color: white;
-	}
-	button.present {
-		background: var(--present);
-		color: white;
-	}
-	button.absent {
-		background: var(--miss);
-		color: white;
-	}
 	.won {
-		color: var(--hit);
+		color: var(--hit-text);
 		font-weight: 700;
 	}
 	.lost {
 		color: var(--ink-muted);
 		font-weight: 700;
 	}
-	/* Not a keyboard key: the base rule's padding is cut for a single glyph
-	   in a ten-across row, which leaves a two-word label pressed against the
-	   sides of its own button. */
 	button.copy {
 		background: var(--hit);
-		color: white;
-		padding: 0.7rem 1.2rem;
+		color: var(--hit-ink);
 	}
 	.message {
-		color: #b91c1c;
+		color: var(--danger);
 		font-size: 0.85rem;
 	}
-	/* Phone: the website's game page lets the whole page scroll instead of
-	   handing this widget the viewport's height (see .board-card in
-	   g/[id]/+page.svelte), so board and keyboard have to earn their space
-	   — at full size the two together were taller than a phone screen on
-	   their own, which is what made a second, inner scroller necessary in
-	   the first place. Smaller tiles, tighter gaps, shorter keys: the same
-	   layout, roughly a third less tall, and the page scrolls as one. */
+	/* Phone: headings shrink along with the boards and keyboard, which give up
+	   their own height through the rule above, Palette.svelte and
+	   Keyboard.svelte. */
 	@media (max-width: 480px) {
 		.game-name {
 			font-size: 1.1rem;
@@ -805,61 +579,5 @@
 		.boards {
 			margin-bottom: 0.6rem;
 		}
-		.keyboard {
-			gap: 0.35rem;
-			padding: 0.4rem 0 0.4rem;
-			/* Pinned to the bottom edge of the screen for as long as any part of
-			   the puzzle is on screen. Sticky rather than fixed on purpose: it
-			   keeps its place in the flow, so nothing is ever hidden underneath
-			   it, and it doesn't sit on top of whatever else the page has below
-			   the game. This is why the board scrolls with the page instead of
-			   inside its own pane — the keyboard staying put was the thing that
-			   layout was for, and it has to hold now that the page owns the
-			   scroll. */
-			position: sticky;
-			bottom: 0;
-			z-index: 2;
-		}
-		.krow {
-			gap: 0.25rem;
-		}
-		button {
-			padding: 0.85rem 0.2rem;
-			font-size: 1rem;
-		}
-	}
-	/* Dark, in the two ways a widget can be asked for it. The website sets
-	   `theme` from the reader's own choice (see ThemeToggle), which has to
-	   win even when it disagrees with the device — that's the attribute
-	   rule. An embed on someone else's site sets nothing, and follows the
-	   device — that's the media query, which steps aside the moment a host
-	   asks for light outright. */
-	@media (prefers-color-scheme: dark) {
-		:host(:not([theme='light'])) .quordle {
-			--accent: #5fb4dd;
-			--accent-hover: #7cc4e6;
-			--hit: #3f8a6c;
-			--present: #a8802f;
-			--miss: #4a4553;
-			--ink: #f0ece5;
-			--ink-muted: #a49eae;
-			--line: #322d3a;
-			--key-bg: #322d3a;
-			--key-bg-hover: #3f3949;
-			--bg: #201d26;
-		}
-	}
-	:host([theme='dark']) .quordle {
-		--accent: #5fb4dd;
-		--accent-hover: #7cc4e6;
-		--hit: #3f8a6c;
-		--present: #a8802f;
-		--miss: #4a4553;
-		--ink: #f0ece5;
-		--ink-muted: #a49eae;
-		--line: #322d3a;
-		--key-bg: #322d3a;
-		--key-bg-hover: #3f3949;
-		--bg: #201d26;
 	}
 </style>
