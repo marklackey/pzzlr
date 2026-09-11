@@ -247,8 +247,11 @@ a {
 /* Now that the brand is near-neutral, a link in running text is 1.58:1 from
    the text around it — close enough that colour alone no longer says "link".
    Prose links carry an underline at rest; nav and footer links are already
-   identified by where they sit. */
-.prose a {
+   identified by where they sit. A button inside prose is exempt — its shape
+   already says what it is, and an underline across a pill's label reads as a
+   link drawn on top of a button. :where() keeps the exemption from adding
+   weight, so this rule outranks exactly what it outranked before. */
+.prose a:where(:not(.btn)) {
 	text-decoration: underline;
 	text-underline-offset: 0.15em;
 }
