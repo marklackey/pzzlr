@@ -528,7 +528,7 @@
 		height: 1.1rem;
 		border-radius: 50%;
 		background: var(--key-bg);
-		color: var(--ink);
+		color: var(--key-ink);
 		font-size: 0.7rem;
 		font-weight: 700;
 		cursor: pointer;
@@ -598,10 +598,6 @@
 	.lost {
 		color: var(--ink-muted);
 		font-weight: 700;
-	}
-	button.copy {
-		background: var(--hit);
-		color: var(--hit-ink);
 	}
 	.message {
 		color: var(--danger);

@@ -320,11 +320,12 @@
 	}
 	/* The bar's buttons, sized for the bar rather than for a dense form —
 	   .btn-sm elsewhere on the site is unaffected, since this is scoped to
-	   the layout. Pill-shaped like the CTAs on the site this was modelled
-	   on; every other button on Pzzlr keeps --radius-sm. */
+	   the layout. The pill itself comes from .btn in app.css: this bar is
+	   where the shape started, and it is every button's shape now. The
+	   widget's Copy result is sized to match these (see BoardStyles.svelte
+	   in the SDK). */
 	.btn-sm {
 		padding: 0.65rem 1.25rem;
-		border-radius: 999px;
 		font-size: 1rem;
 	}
 	.menu-toggle {

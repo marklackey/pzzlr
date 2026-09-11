@@ -106,7 +106,7 @@
 		box-sizing: border-box;
 		border-radius: 9px;
 		background: var(--key-bg);
-		color: var(--ink);
+		color: var(--key-ink);
 		text-transform: uppercase;
 		font-weight: 700;
 		font-size: 1.05rem;

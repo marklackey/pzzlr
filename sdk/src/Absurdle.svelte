@@ -359,13 +359,6 @@
 		flex-wrap: wrap;
 		gap: 0.5rem;
 	}
-	button.copy {
-		background: var(--hit);
-		color: var(--hit-ink);
-	}
-	button.again {
-		background: var(--key-bg);
-	}
 	.message {
 		color: var(--danger);
 		font-size: 0.85rem;
