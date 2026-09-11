@@ -557,10 +557,6 @@
 		color: var(--ink-muted);
 		font-weight: 700;
 	}
-	button.copy {
-		background: var(--hit);
-		color: var(--hit-ink);
-	}
 	.message {
 		color: var(--danger);
 		font-size: 0.85rem;

@@ -321,13 +321,19 @@ a:hover {
 	padding: var(--space-5);
 }
 
+/* Every button on Pzzlr is a pill — the nav bar's, the forms', and the
+   Copy result that ends a game inside the widget (see BoardStyles.svelte in
+   the SDK). One shape, so a button is recognisable as one wherever it
+   turns up, and a shape the game never uses: tiles, keys, cards and inputs
+   are all rounded rectangles, so an action never reads as a piece of the
+   board or a field to type in. */
 .btn {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
 	gap: var(--space-2);
 	padding: 0.6rem 1.1rem;
-	border-radius: var(--radius-sm);
+	border-radius: 999px;
 	border: 1px solid transparent;
 	font: inherit;
 	font-weight: 600;
@@ -369,6 +375,12 @@ a:hover {
 a:focus-visible {
 	outline: 2px solid var(--color-primary);
 	outline-offset: 2px;
+}
+/* A plain link has no shape of its own, so its ring is given one. A button
+   already has one, and rounding it here would square off a pill the moment
+   it took keyboard focus. :where() keeps this at a bare a:focus-visible's
+   weight, so a link that styles its own corners still wins as it did. */
+a:where(:not(.btn)):focus-visible {
 	border-radius: var(--radius-sm);
 }
 

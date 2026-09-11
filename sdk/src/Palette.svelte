@@ -53,16 +53,16 @@
 		   the board stays paper with a grey letter: leaving it unfilled is
 		   what makes the filled ones read as a pattern.
 
-		   The two themes run the same way round now, by opposite means. On
-		   paper a spent key goes dark under a white label: there is nowhere
-		   pale for it to recede to, so it steps forward instead, which is the
-		   conventional look. On the dark board the two greys were exchanged to
-		   reach the same place — the spent key took the mid slate the resting
-		   keys used to wear, and the resting keys took the near-black the spent
-		   ones had. A used letter is the loud key in both themes and an
-		   untouched one is quiet. Note what that costs on the dark board: a
-		   resting key is now within about 1.1:1 of the board behind it, so the
-		   key's own shape is barely drawn and only its letter really reads. */
+		   The two themes run opposite ways round. On paper a spent key goes
+		   dark under a white label: there is nowhere pale for it to recede
+		   to, so it steps forward, which is the conventional look. On the dark
+		   board it recedes: the untouched keys are pale — the site's primary
+		   button colour, --color-primary in app.css, under a dark label — and
+		   a spent key sinks to a slate just off the board, so the letters
+		   still worth trying are the ones that look like keys. Just off it,
+		   not onto it: at the near-black a spent key used to be, about 1.1:1
+		   against the board, its shape didn't draw and only its letter was
+		   left. */
 		--miss: #6b7280;
 		--miss-ink: #ffffff;
 		/* Error text inside a widget. Was a hard-coded #b91c1c in all four,
@@ -77,12 +77,32 @@
 		--line: #e2e5ea;
 		/* The resting tile outline. Visible on its own terms, and still a
 		   step below --line-strong so the row being typed into stays the
-		   loudest thing on the board. */
+		   loudest thing on the board. On the dark board it is the resting
+		   keys' pale, so tiles and keyboard read as one set, and --line-strong
+		   goes a step paler again to stay on top. */
 		--tile-line: #a6b0be;
 		/* Control boundaries need 3:1 against the board to be perceivable. */
 		--line-strong: #858e9c;
 		--key-bg: #eaecf0;
 		--key-bg-hover: #dde0e6;
+		/* The label on anything wearing --key-bg: the resting keys and
+		   Wordle's hard-mode "?". Plain --ink on paper, but the dark keys are
+		   pale and need a dark label, so it is its own token. */
+		--key-ink: var(--ink);
+		/* The one action colour: Copy result, in all four widgets. These are
+		   the site's --color-primary values from app.css, so the button that
+		   ends a game is the site's own primary button — the same thing the
+		   nav bar's Create is — rather than a colour of its own.
+
+		   It is kept off every board state on purpose. Copy used to wear the
+		   correct-tile blue on the wordle family and the target word's orange
+		   on the ladder, and a button in a state's colour sits right under a
+		   finished board and reads as one more piece of it. The board's
+		   colours say what happened; this one only says "press me", and
+		   saying it in ink rather than a hue leaves every hue to the game. */
+		--primary: #2b3a55;
+		--primary-hover: #1f2b41;
+		--primary-ink: #ffffff;
 		--bg: #fff;
 		--accent: var(--accent-light);
 		--accent-hover: var(--accent-hover-light);
@@ -95,11 +115,7 @@
 		--accent-soft: var(--accent-soft-light);
 		--accent-soft-ink: var(--accent-soft-ink-light);
 		/* The ladder's warm counter-colour, same arrangement: declared there,
-		   chosen here. See the --goal block in Ladder.svelte for why light
-		   carries a separate --goal-text and dark does not. */
-		--goal: var(--goal-light);
-		--goal-hover: var(--goal-hover-light);
-		--goal-ink: var(--goal-ink-light);
+		   chosen here. See the --goal-text block in Ladder.svelte. */
 		--goal-text: var(--goal-text-light);
 		/* Row geometry, shared by the tiles themselves and by the desktop
 		   board height that reserves room for --visible-rows of them. A widget
@@ -125,25 +141,26 @@
 			--hit-text: #1fbfff;
 			--present: #cc671e;
 			--present-ink: #2b1200;
-			--miss: #3e4654;
+			--miss: #2c323d;
 			--miss-ink: #eef0f3;
 			--danger: #f08d84;
 			--ink: #e8eaee;
 			--ink-muted: #9aa2b1;
 			--line: #262b35;
-			--tile-line: #4f596a;
-			--line-strong: #626c7c;
-			--key-bg: #1c2029;
-			--key-bg-hover: #262b35;
+			--tile-line: #cdd8ea;
+			--line-strong: #e2e9f4;
+			--key-bg: #cdd8ea;
+			--key-bg-hover: #e2e9f4;
+			--key-ink: #101217;
+			--primary: #cdd8ea;
+			--primary-hover: #e2e9f4;
+			--primary-ink: #101217;
 			--bg: #171a21;
 			--accent: var(--accent-dark);
 			--accent-hover: var(--accent-hover-dark);
 			--accent-ink: var(--accent-ink-dark);
 			--accent-soft: var(--accent-soft-dark);
 			--accent-soft-ink: var(--accent-soft-ink-dark);
-			--goal: var(--goal-dark);
-			--goal-hover: var(--goal-hover-dark);
-			--goal-ink: var(--goal-ink-dark);
 			--goal-text: var(--goal-text-dark);
 		}
 	}
@@ -153,25 +170,26 @@
 		--hit-text: #1fbfff;
 		--present: #cc671e;
 		--present-ink: #2b1200;
-		--miss: #3e4654;
+		--miss: #2c323d;
 		--miss-ink: #eef0f3;
 		--danger: #f08d84;
 		--ink: #e8eaee;
 		--ink-muted: #9aa2b1;
 		--line: #262b35;
-		--tile-line: #4f596a;
-		--line-strong: #626c7c;
-		--key-bg: #1c2029;
-		--key-bg-hover: #262b35;
+		--tile-line: #cdd8ea;
+		--line-strong: #e2e9f4;
+		--key-bg: #cdd8ea;
+		--key-bg-hover: #e2e9f4;
+		--key-ink: #101217;
+		--primary: #cdd8ea;
+		--primary-hover: #e2e9f4;
+		--primary-ink: #101217;
 		--bg: #171a21;
 		--accent: var(--accent-dark);
 		--accent-hover: var(--accent-hover-dark);
 		--accent-ink: var(--accent-ink-dark);
 		--accent-soft: var(--accent-soft-dark);
 		--accent-soft-ink: var(--accent-soft-ink-dark);
-		--goal: var(--goal-dark);
-		--goal-hover: var(--goal-hover-dark);
-		--goal-ink: var(--goal-ink-dark);
 		--goal-text: var(--goal-text-dark);
 	}
 	/* Phone: the board has to give up some height so the keyboard can stay on

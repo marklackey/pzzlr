@@ -152,33 +152,62 @@
 				transform: scale(1.15);
 			}
 		}
-		/* The buttons that aren't keys — copy your result, play again. They used
-		   to inherit this from the on-screen keyboard's own `button` rule, back
-		   when the keyboard was written out inside each widget; now that it's a
-		   component with its own scope, the look lives here instead. Padding is
-		   the reason it can't simply be the key rule: that one's side padding is
-		   cut for a single glyph in a ten-across row, which leaves a two-word
-		   label pressed against the sides of its own button. Each widget still
-		   chooses the fill, next to whatever else it colours. */
+		/* The buttons that aren't keys — copy your result, play again — are the
+		   site's buttons rather than the keyboard's: the nav bar's pill (.btn
+		   in app.css, sized by .btn-sm in +layout.svelte), at its padding, size
+		   and weight, in sentence case. They used to be keys with longer
+		   labels — the keyboard's rounded square, its uppercase, its weight —
+		   which is a leftover from inheriting the key rule, not a choice.
+
+		   The shape is what separates them from the game. Tiles and keys are
+		   rounded squares, so a button drawn as one more rounded square under
+		   a finished board reads as part of the board; a pill doesn't. It is
+		   also the one shape every button on the site now has, so the button
+		   that ends a game looks like the one that started it. */
 		.copy,
 		.again {
-			border: none;
+			border: 1px solid transparent;
 			box-sizing: border-box;
-			border-radius: 9px;
-			padding: 0.7rem 1.2rem;
-			color: var(--ink);
-			text-transform: uppercase;
-			font-weight: 700;
-			font-size: 1.05rem;
-			line-height: 1.15;
+			border-radius: 999px;
+			padding: 0.65rem 1.25rem;
+			font: inherit;
+			font-size: 1rem;
+			font-weight: 600;
+			/* The site's body line-height, which is what sizes its buttons —
+			   this is the line box, not a spacing choice, and matching it is
+			   what makes these the nav's buttons in height as well as shape. */
+			line-height: 1.6;
 			cursor: pointer;
-			transition: background 0.1s;
+			transition:
+				background 0.15s,
+				border-color 0.15s;
 			/* Carried over from the key rule these used to inherit rather than
 			   dropped on the way out: a two-word label that no longer fits is
 			   clipped, not wrapped onto a second line that would change the
 			   button's height. */
 			overflow: hidden;
 			white-space: nowrap;
+		}
+		/* Primary: see --primary in Palette.svelte for why it is ink and not
+		   one of the board's colours. */
+		.copy {
+			background: var(--primary);
+			color: var(--primary-ink);
+		}
+		.copy:hover {
+			background: var(--primary-hover);
+		}
+		/* Secondary, the way the site's .btn-secondary is: unfilled, with an
+		   edge. The edge is --line-strong rather than the faint --line because
+		   a control boundary has to clear 3:1 to be seen as one, and this
+		   button has nothing but its edge to say it is a button. */
+		.again {
+			background: transparent;
+			border-color: var(--line-strong);
+			color: var(--ink);
+		}
+		.again:hover {
+			background: var(--line);
 		}
 		/* Phone: the page scrolls as one and the keyboard sticks to the bottom
 		   of it (see Keyboard.svelte), so the board gives up what height it can
@@ -188,10 +217,6 @@
 		@media (max-width: 480px) {
 			.board {
 				margin-bottom: 0.6rem;
-			}
-			.copy,
-			.again {
-				font-size: 1rem;
 			}
 		}
 	}

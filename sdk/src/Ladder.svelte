@@ -317,10 +317,7 @@
 									<!-- The same tile a played rung uses, matched letters and
 									     all: a revealed ladder should look like one somebody
 									     climbed, not like a sketch of one. -->
-									<div
-										class="tile"
-										class:matched={matchesTarget(word, i)}
-									>
+									<div class="tile" class:matched={matchesTarget(word, i)}>
 										{word[i]?.toUpperCase() ?? ''}
 									</div>
 								{/each}
@@ -404,27 +401,19 @@
 		   from one another. It is every settled tile on the board, the last
 		   row included — --accent is left for the things around the board
 		   rather than a second shade inside it. */
-		/* The one warm colour on this board: the Copy button's fill and the
-		   target word in the header, which are the two places that say what
-		   you are aiming at. It is the complement of the ladder's blue —
-		   about 180° round the wheel from it — so it reads as the other
-		   thing rather than as another shade of the same thing.
+		/* The one warm colour on this board: the target word in the header,
+		   which says what you are aiming at. It is the complement of the
+		   ladder's blue — about 180° round the wheel from it — so it reads as
+		   the other thing rather than as another shade of the same thing.
 
-		   Light needs two values where dark needs one, and --goal-text is that
-		   split. As TEXT on paper an orange runs out of room at about
-		   #c75000, which is 4.6:1 — a shade lighter drops under 4.5 and the
-		   target word stops being readable for anyone who needs the
-		   contrast. The fill has no such ceiling, since it carries a dark
-		   label rather than being read against paper, so the button is a
-		   good deal brighter than the word it echoes. On the dark board the
-		   bright value clears 7:1 as text and does both jobs. */
-		--goal-light: #ff781f;
-		--goal-hover-light: #ff6600;
-		--goal-ink-light: #2b1200;
+		   Picked per theme. As text on paper an orange runs out of room at
+		   about #c75000, which is 4.6:1 — a shade lighter drops under 4.5 and
+		   the target word stops being readable for anyone who needs the
+		   contrast. On the dark board the bright value clears 7:1. The Copy
+		   button used to wear a brighter fill of this; it is the site's
+		   primary button now, like the other three games' (see --primary in
+		   Palette.svelte), so there is no fill to declare any more. */
 		--goal-text-light: #c75000;
-		--goal-dark: #ff8b3d;
-		--goal-hover-dark: #ff9752;
-		--goal-ink-dark: #2b1200;
 		--goal-text-dark: #ff8b3d;
 		--accent-ink-light: #ffffff;
 		--accent-soft-light: #42caff;
@@ -569,13 +558,6 @@
 	.won {
 		color: var(--accent);
 		font-weight: 700;
-	}
-	button.copy {
-		background: var(--goal);
-		color: var(--goal-ink);
-	}
-	button.copy:hover {
-		background: var(--goal-hover);
 	}
 	.message {
 		color: var(--danger);
