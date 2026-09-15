@@ -15,18 +15,14 @@
 	/>
 </svelte:head>
 
-<header>
-	<div class="container prose reading page-head">
-		<h1>About</h1>
+<div class="container prose">
+	<h1>About</h1>
 
-		<p class="lead">
-			Pzzlr is a small tool for making daily word games — and for putting them somewhere that isn't
-			here.
-		</p>
-	</div>
-</header>
+	<p class="lead">
+		Pzzlr is a small tool for making daily word games — and for putting them somewhere that isn't
+		here.
+	</p>
 
-<div class="container prose reading">
 	<h2>What it does</h2>
 	<p>
 		You choose a game type and a word, and set how the puzzle should behave: how long the words are,

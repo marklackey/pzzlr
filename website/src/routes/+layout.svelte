@@ -295,7 +295,7 @@
 		   the pages doing that math just end up a little taller than exact. */
 		min-height: var(--nav-h);
 		box-sizing: border-box;
-		padding: var(--space-2) var(--space-5);
+		padding: var(--space-3) var(--space-5);
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
@@ -304,29 +304,27 @@
 	}
 	/* The wordmark is sized against the bar's height budget rather than
 	   against the links beside it: --nav-h is 5rem and .nav-inner spends
-	   var(--space-2) top and bottom, which leaves 64px of content box. The
-	   text's line box is the tallest thing in the lockup — 62px at 3.9rem
-	   here, and 38px of the phone bar's 40px — and line-height: 1 keeps it
-	   at its font size, where the inherited 1.6 would add height the bar
-	   doesn't have. The ladder is sized so the drawn ladder stands exactly
-	   as tall as the capital P: Inter's caps are 0.7275em (see pz-glyph.ts)
-	   and the drawing fills 84% of its box (y 18 to 448 of 512), so the box
-	   is 0.866em. The drawing also sits 4.5% of its box above centre, so
-	   it's moved down that much to line up with the letters. It leaves a
-	   sixth of the width empty at each side, so the gap is small: that margin
-	   already reads as space. */
+	   var(--space-3) top and bottom, which leaves 56px of content box. At
+	   1.95rem on a line-height of 1 the text draws 31px, so it can grow this
+	   far without the bar following it — line-height: 1 is what keeps that
+	   true, since the inherited 1.6 would put the line box at 50px and leave
+	   almost nothing in hand. The ladder's box is set a size up again, at
+	   1.15em (36px), the size the emoji it replaced was set at. The drawing
+	   sits 4.5% of its box above centre, so it's moved down that much to
+	   line up with the letters. It leaves a sixth of the width empty at each
+	   side, so the gap is small: that margin already reads as space. */
 	.brand {
 		display: inline-flex;
 		align-items: center;
 		gap: 0.07em;
-		font-size: 3.9rem;
+		font-size: 1.95rem;
 		font-weight: 550;
 		line-height: 1;
 		color: var(--color-text);
 	}
 	.brand-mark {
-		width: 0.866em;
-		height: 0.866em;
+		width: 1.15em;
+		height: 1.15em;
 		flex-shrink: 0;
 		padding: 0px;
 		translate: 0 4.5%;
@@ -390,7 +388,7 @@
 			gap: var(--space-3);
 		}
 		.brand {
-			font-size: 2.4rem;
+			font-size: 1.3rem;
 		}
 		.btn-sm {
 			padding: 0.45rem 0.9rem;

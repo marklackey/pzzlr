@@ -6,36 +6,29 @@
 </script>
 
 <div class="container">
-	<div class="header">
-		<h1>My games</h1>
-		<a class="create" href={resolve('/create')}> + </a>
-	</div>
-	<GameList
-		games={data.games}
-		favoriteIds={data.favoriteIds}
-		emptyMessage="You haven't created any games yet."
-	/>
+	<h1>My games</h1>
+	<GameList games={data.games} favoriteIds={data.favoriteIds}>
+		{#snippet emptyMessage()}
+			<span class="first-game"><a href={resolve('/create')}>Create</a> your first game!</span>
+		{/snippet}
+	</GameList>
 </div>
 
 <style>
-	.header {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		vertical-align: center;
-		justify-content: space-between;
-		gap: var(--space-3);
-		/* The list starts here, and a link sitting right on top of the first
-		   card reads as part of it. */
-		margin-bottom: var(--space-6);
+	h1 {
+		margin: 0 0 var(--space-6);
 	}
-	.header h1 {
-		margin: 0;
+	/* A size under the page title, so an empty shelf reads as an invitation. */
+	/* Bold rather than a darker colour: it's already in the darkest ink, and
+	   Inter's regular weight reads grey at this size. */
+	.first-game {
+		font-size: 1.25rem;
+		font-weight: 700;
 	}
-	/* A plain link rather than a button, set like Create on the nav bar. */
-	.create {
-		vertical-align: center;
-		font-size: 3rem;
-		/* font-weight: 700; */
+	/* Underlined at rest, like links in prose (app.css): the slate link colour
+	   alone is too close to the ink around it to say "link". */
+	.first-game a {
+		text-decoration: underline;
+		text-underline-offset: 0.15em;
 	}
 </style>

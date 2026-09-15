@@ -7,14 +7,10 @@
 	<meta name="description" content="The terms for using Pzzlr and for embedding its games." />
 </svelte:head>
 
-<header>
-	<div class="container prose reading page-head">
-		<h1>Terms of use</h1>
-		<p class="updated">Last updated 29 August 2026</p>
-	</div>
-</header>
+<div class="container prose">
+	<h1>Terms of use</h1>
+	<p class="updated">Last updated 29 August 2026</p>
 
-<div class="container prose reading">
 	<p>
 		These terms cover using Pzzlr, making games with it, and embedding those games elsewhere. Using
 		the site means accepting them.

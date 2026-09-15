@@ -229,12 +229,37 @@
 		box-sizing: border-box;
 	}
 
-	/* The hero wears the four game colours as a wash (--page-wash in
-	   app.css); the other pages' header bands wear the same one. */
+	/* The page's colour comes from the games, not from a brand hue — the
+	   chrome stays ink (see the --color-primary comment in app.css). So the
+	   hero is washed with the four mode colours themselves, mixed down to a
+	   tint against the page so they read as light rather than as four
+	   competing blocks. color-mix keeps every tint tied to its hue, which
+	   matters here: these four have moved more than once, and a hard-coded
+	   pastel would quietly stop matching the game it stands for. */
 	.hero {
 		padding: var(--space-12) 0 var(--space-10);
 		border-bottom: 1px solid var(--color-border);
-		background: var(--page-wash);
+		background:
+			radial-gradient(
+				52rem 26rem at 8% -12%,
+				color-mix(in srgb, var(--color-ladder) 30%, transparent),
+				transparent 68%
+			),
+			radial-gradient(
+				44rem 24rem at 92% -8%,
+				color-mix(in srgb, var(--color-absurdle) 26%, transparent),
+				transparent 66%
+			),
+			radial-gradient(
+				38rem 20rem at 62% 6%,
+				color-mix(in srgb, var(--color-wordle) 18%, transparent),
+				transparent 62%
+			),
+			linear-gradient(
+				180deg,
+				color-mix(in srgb, var(--color-quordle) 10%, var(--color-bg)),
+				var(--color-bg) 74%
+			);
 	}
 	.hero-inner {
 		display: grid;

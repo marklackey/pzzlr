@@ -24,18 +24,14 @@
 	/>
 </svelte:head>
 
-<header>
-	<div class="container prose reading page-head">
-		<h1>Embed a game</h1>
+<div class="container prose">
+	<h1>Embed a game</h1>
 
-		<p class="lead">
-			A game you've made can run inside your own site — a script tag and one element, on any page
-			you can edit.
-		</p>
-	</div>
-</header>
+	<p class="lead">
+		A game you've made can run inside your own site — a script tag and one element, on any page you
+		can edit.
+	</p>
 
-<div class="container prose reading">
 	<h2>The snippet</h2>
 	<p>
 		Open your game and choose <strong>Copy embed snippet</strong>. It gives you both lines, already

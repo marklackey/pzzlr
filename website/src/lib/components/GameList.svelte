@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { MODE_LABELS, type GameRow } from '$lib/types';
+	import type { Snippet } from 'svelte';
 	import FavoriteButton from './FavoriteButton.svelte';
 
 	interface Props {
 		games: GameRow[];
-		emptyMessage: string;
+		/** Shown instead of the list when it's empty: plain text, or a snippet when it needs a link. */
+		emptyMessage: string | Snippet;
 		/**
 		 * Which of these games the viewer has starred. Null means don't offer
 		 * stars at all — nobody's signed in, so there's no shelf to put one
@@ -30,7 +32,9 @@
 </script>
 
 {#if games.length === 0}
-	<p>{emptyMessage}</p>
+	<p>
+		{#if typeof emptyMessage === 'string'}{emptyMessage}{:else}{@render emptyMessage()}{/if}
+	</p>
 {:else}
 	<ul>
 		{#each games as game (game.id)}
