@@ -57,30 +57,41 @@
 	// The answer to the day on screen, once asked for. Fetched rather than
 	// shipped with the page: an answer that arrives unasked isn't a reveal.
 	// It goes to the widget as an attribute, which draws it on the board.
-	let revealedWords = $state<string[]>([]);
-	let revealError = $state('');
-	let revealing = $state(false);
+	//
+	// Each piece is stamped with the day it belongs to. This component stays
+	// mounted when the page moves between days (← Today, or another day from
+	// the archive), so anything left unstamped would follow the visitor
+	// there: a revealed answer drawn on today's board, or a request still in
+	// flight landing on a day it wasn't made for.
+	let revealed = $state<{ day: string; words: string[] } | null>(null);
+	let revealFailure = $state<{ day: string; message: string } | null>(null);
+	let revealingDay = $state<string | null>(null);
+	const revealedWords = $derived(revealed?.day === day ? revealed.words : []);
+	const revealError = $derived(revealFailure?.day === day ? revealFailure.message : '');
+	const revealing = $derived(revealingDay === day);
 	const revealedAttr = $derived(revealedWords.join(','));
 
 	async function revealDay() {
-		if (!day || revealing || revealedWords.length > 0) return;
-		revealing = true;
-		revealError = '';
+		const forDay = day;
+		if (!forDay || revealing || revealedWords.length > 0) return;
+		revealingDay = forDay;
+		revealFailure = null;
 		try {
-			const res = await fetch(`/api/games/${data.config.id}/archive?date=${day}`);
+			const res = await fetch(`/api/games/${data.config.id}/archive?date=${forDay}`);
 			const body = (await res.json().catch(() => null)) as
 				(RevealedDay & { message?: string }) | null;
 			if (!res.ok) {
-				revealError = body?.message ?? 'could not reveal that day';
+				revealFailure = { day: forDay, message: body?.message ?? 'could not reveal that day' };
 				return;
 			}
 			// A ladder's answer is the chain that gets there, not its ends;
 			// wordle has one word, quordle one per board.
-			revealedWords = body?.path ?? body?.targets ?? (body?.target ? [body.target] : []);
+			const words = body?.path ?? body?.targets ?? (body?.target ? [body.target] : []);
+			revealed = { day: forDay, words };
 		} catch {
-			revealError = 'could not reach the server';
+			revealFailure = { day: forDay, message: 'could not reach the server' };
 		} finally {
-			revealing = false;
+			if (revealingDay === forDay) revealingDay = null;
 		}
 	}
 
