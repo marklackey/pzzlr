@@ -449,7 +449,9 @@
 		/* Bigger than the shared default: a wordle board is one word wide, so
 		   its tiles have room the other games' don't. */
 		--tile-font: 1.4rem;
-		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+		/* A page can set --pzzlr-font to put the board in its own typeface; the
+		   Pzzlr site does, for Inter. Anywhere else it's the system font. */
+		font-family: var(--pzzlr-font, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
 		width: 100%;
 		/* Generous but bounded — lets the keyboard genuinely fill a wide
 		   host container (see .krow button in Keyboard.svelte) without keys

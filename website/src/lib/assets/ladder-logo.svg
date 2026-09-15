@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+<title>Wooden stepladder</title>
+<desc>An emoji-style wooden A-frame stepladder with four front steps, rear braces, metal spreaders, and a broad top cap.</desc>
+<defs>
+ <linearGradient id="wood" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#89643A"/><stop offset=".25" stop-color="#B48B54"/><stop offset=".53" stop-color="#D0A36A"/><stop offset=".78" stop-color="#AF814B"/><stop offset="1" stop-color="#E2B67A"/></linearGradient>
+ <linearGradient id="light" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#DCA563"/><stop offset=".35" stop-color="#FFD39A"/><stop offset=".75" stop-color="#F4BF7E"/><stop offset="1" stop-color="#D49A58"/></linearGradient>
+ <linearGradient id="step" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#B39060"/><stop offset=".2" stop-color="#A58150"/><stop offset=".75" stop-color="#8F6C40"/><stop offset="1" stop-color="#77562F"/></linearGradient>
+ <linearGradient id="metal" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#B4B7B4"/><stop offset=".42" stop-color="#9C9F9A"/><stop offset="1" stop-color="#70736D"/></linearGradient>
+ <linearGradient id="top" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#E0B47B"/><stop offset="1" stop-color="#8D683E"/></linearGradient>
+</defs>
+<!-- Rear frame, behind the climbing face. -->
+<path d="M205 53L222 51L328 448H306Z" fill="url(#light)"/>
+<path d="M205 53L213 57L316 448H306Z" fill="#896A42"/>
+<path d="M242 114L331 109L335 126L247 132Z" fill="url(#step)"/>
+<path d="M268 211L352 203L357 222L274 231Z" fill="url(#step)"/>
+<path d="M293 303L378 295L382 314L298 324Z" fill="url(#step)"/>
+<path d="M315 393L399 386L404 404L320 413Z" fill="url(#step)"/>
+<path d="M307 44L328 48L427 448H404Z" fill="url(#light)"/>
+<path d="M307 44L316 51L413 448H404Z" fill="#8B693D"/>
+<path d="M327 55L422 444" stroke="#FFDCAC" stroke-width="3" opacity=".65"/>
+<!-- Left wooden rail and its recessed side. -->
+<path d="M190 54L216 52L113 448H82Z" fill="url(#wood)"/>
+<path d="M190 54L199 58L94 448H82Z" fill="#826038"/>
+<path d="M204 64L103 440" stroke="#E0B579" stroke-width="4" opacity=".55"/>
+<!-- Far folding spreader. -->
+<path d="M158 258L207 264L253 262L253 273L207 276L157 270Z" fill="url(#metal)"/>
+<circle cx="206" cy="270" r="3.5" fill="#747670"/><circle cx="205" cy="269" r="1.5" fill="#C4C6C1"/>
+<!-- Four broad front treads. -->
+<path d="M174 109L267 98L277 102L266 119L171 128Z" fill="url(#top)"/>
+<path d="M171 115L264 106L264 124L170 132Z" fill="url(#step)"/>
+<path d="M264 106L277 102L273 119L264 124Z" fill="url(#light)"/>
+<path d="M150 199L240 189L251 193L241 212L147 220Z" fill="url(#top)"/>
+<path d="M147 205L239 198L238 216L146 224Z" fill="url(#step)"/>
+<path d="M239 198L251 193L246 211L238 216Z" fill="url(#light)"/>
+<path d="M125 291L217 283L227 287L218 306L122 313Z" fill="url(#top)"/>
+<path d="M122 296L216 290L215 308L121 315Z" fill="url(#step)"/>
+<path d="M216 290L227 287L222 304L215 308Z" fill="url(#light)"/>
+<path d="M99 385L191 378L202 382L192 401L96 408Z" fill="url(#top)"/>
+<path d="M96 390L190 385L189 403L95 409Z" fill="url(#step)"/>
+<path d="M190 385L202 382L197 400L189 403Z" fill="url(#light)"/>
+<!-- Foreground rail, with bright outer edge. -->
+<path d="M290 41L320 45L212 448H180Z" fill="url(#light)"/>
+<path d="M290 41L299 47L191 448H180Z" fill="#A27A44"/>
+<path d="M310 54L204 442" stroke="#FFDAA1" stroke-width="5" opacity=".6"/>
+<path d="M300 67L201 431" stroke="#D29A56" stroke-width="1.5" opacity=".4"/>
+<!-- Steel hinge beneath the cap. -->
+<path d="M301 39L331 43L333 53Q316 60 303 50Z" fill="#747770"/>
+<path d="M306 41L328 44L328 49L309 47Z" fill="#B0B0A4"/>
+<!-- Near folding spreader and three rivets. -->
+<path d="M256 247L316 255L374 255Q379 255 379 261V265Q379 269 373 269L315 267L254 259Q251 258 252 252Q252 247 256 247Z" fill="url(#metal)"/>
+<path d="M257 249L317 257L372 257" stroke="#C5C6BE" stroke-width="2"/>
+<g fill="#676B65"><circle cx="258" cy="253" r="3"/><circle cx="316" cy="261" r="3.2"/><circle cx="372" cy="262" r="3"/></g>
+<g fill="#C4C6BF"><circle cx="257" cy="252" r="1.2"/><circle cx="315" cy="260" r="1.3"/><circle cx="371" cy="261" r="1.2"/></g>
+<!-- Wide top platform: top, front fascia, and end grain. -->
+<path d="M178 38L299 18L344 26L222 48Z" fill="url(#top)"/>
+<path d="M178 38L299 20L299 40L178 58Z" fill="url(#step)"/>
+<path d="M299 20L344 26L344 44L299 40Z" fill="url(#light)"/>
+<path d="M181 40L296 23" stroke="#C6A170" stroke-width="2" opacity=".7"/>
+<path d="M183 53L294 37" stroke="#654824" stroke-width="2" opacity=".32"/>
+<path d="M303 23L340 29" stroke="#FFE0AD" stroke-width="2"/>
+</svg>

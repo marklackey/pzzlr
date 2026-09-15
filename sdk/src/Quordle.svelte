@@ -446,7 +446,14 @@
 		--row-gap: 0.3rem;
 		--tile-radius: 6px;
 		--tile-font: calc(var(--tile-max) * 0.42);
-		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+		/* The keyboard is held to the 40rem the other three games' roots stop
+		   at, so it is the same size as theirs even though this root is wider.
+		   A page can narrow it further with --pzzlr-keyboard-max; the Pzzlr
+		   site does, to match the keyboards in its single-board cards. */
+		--keyboard-max: var(--pzzlr-keyboard-max, 40rem);
+		/* A page can set --pzzlr-font to put the board in its own typeface; the
+		   Pzzlr site does, for Inter. Anywhere else it's the system font. */
+		font-family: var(--pzzlr-font, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
 		width: 100%;
 		max-width: 64rem;
 		box-sizing: border-box;

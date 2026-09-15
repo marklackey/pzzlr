@@ -10,9 +10,13 @@
 	/>
 </svelte:head>
 
-<div class="container prose">
-	<h1>Support</h1>
+<header>
+	<div class="container prose reading page-head">
+		<h1>Support</h1>
+	</div>
+</header>
 
+<div class="container prose reading">
 	<p>
 		Something broken, confusing, or missing? Email
 		<a href="mailto:support@pzzlr.app">support@pzzlr.app</a>. Saying which game you were on (its

@@ -15,23 +15,28 @@
 	/>
 </svelte:head>
 
-<div class="container prose">
-	<h1>About Pzzlr</h1>
+<header>
+	<div class="container prose reading page-head">
+		<h1>About</h1>
 
-	<p class="lead">
-		Pzzlr is a small tool for making daily word games — and for putting them somewhere that isn't
-		here.
-	</p>
+		<p class="lead">
+			Pzzlr is a small tool for making daily word games — and for putting them somewhere that isn't
+			here.
+		</p>
+	</div>
+</header>
 
+<div class="container prose reading">
 	<h2>What it does</h2>
 	<p>
 		You choose a game type and a word, and set how the puzzle should behave: how long the words are,
 		how many guesses a player gets, how obscure the dictionary is allowed to be. From those rules
 		Pzzlr generates a fresh puzzle every day at midnight Eastern — a
-		<strong>Ladder</strong> that climbs one letter at a time, a <strong>Wordle</strong>, a
-		<strong>Quordle</strong>
-		of four boards at once, or an <strong>Absurdle</strong> that never picks a secret and dodges for as
-		long as it can.
+		<span class="badge badge-ladder">Ladder</span> that climbs one letter at a time, a
+		<span class="badge badge-wordle">Wordle</span>, a
+		<span class="badge badge-quordle">Quordle</span>
+		of four boards at once, or an <span class="badge badge-absurdle">Absurdle</span> that never picks
+		a secret and dodges for as long as it can.
 	</p>
 	<p>
 		Everyone playing a given game gets the same puzzle that day, progress is kept as you go, and

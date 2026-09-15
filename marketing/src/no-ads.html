@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<title>Pzzlr ad: no ads</title>
+		<link rel="stylesheet" href="base.css" />
+	</head>
+	<!-- Leads with the reason Pzzlr exists. Dark, so the settled blue is the
+	     brightest thing in someone's feed. -->
+	<body class="theme-dark">
+		<main class="frame" style="--visual-w: 42rem">
+			<div class="copy-col">
+				<div class="brand"><img src="pz-blue-dark.svg" alt="Pzzlr" /></div>
+				<div class="copy">
+					<h1>A daily word game with no ads.</h1>
+					<p class="lead">No banners, no pop-ups, no&nbsp;trackers. Just the puzzle.</p>
+				</div>
+				<div class="url">pzzlr.app</div>
+			</div>
+			<div class="visual">
+				<div class="tiles ladder" id="ladder" style="--cols: 4; --rows: 5"></div>
+			</div>
+		</main>
+		<script src="tiles.js"></script>
+		<script>
+			drawLadder(
+				document.getElementById('ladder'),
+				['COLD', 'CORD', 'WORD', 'WARD', 'WARM'],
+				'WARM'
+			);
+		</script>
+	</body>
+</html>

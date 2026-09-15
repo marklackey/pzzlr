@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<title>Pzzlr ad: group chat</title>
+		<link rel="stylesheet" href="base.css" />
+	</head>
+	<!-- The second act: a game of your own, for people you already talk to.
+	     No mode is named — "Wordle" and "Quordle" are other people's
+	     trademarks, and ad review is stricter about that than a site is. -->
+	<body class="theme-light">
+		<main class="frame" style="--visual-w: 50rem">
+			<div class="copy-col">
+				<div class="brand"><img src="pz-blue-light.svg" alt="Pzzlr" /></div>
+				<div class="copy">
+					<h1>Make a daily word game for your group chat.</h1>
+					<p class="lead">
+						Set the rules, share the link, and everyone gets the same new puzzle each day. Free,
+						with no ads.
+					</p>
+				</div>
+				<div class="url">pzzlr.app</div>
+			</div>
+			<div class="visual">
+				<div class="tiles board" id="board" style="--cols: 5; --rows: 4"></div>
+			</div>
+		</main>
+		<script src="tiles.js"></script>
+		<script>
+			drawBoard(document.getElementById('board'), ['CRANE', 'HOIST', 'SLIME', 'SMILE'], 'SMILE');
+		</script>
+	</body>
+</html>

@@ -75,7 +75,7 @@
 	}
 </script>
 
-<div class="container narrow">
+<div class="container narrow reading page-head">
 	{#if awaitingVerification}
 		<h1>Check your email</h1>
 		<div class="card">
@@ -174,8 +174,10 @@
 </div>
 
 <style>
+	/* 22rem of form, plus the inset the washed panel (.page-head in app.css)
+	   gives its contents on each side. */
 	.narrow {
-		max-width: 22rem;
+		max-width: calc(22rem + 2 * var(--space-6));
 	}
 	form {
 		display: flex;

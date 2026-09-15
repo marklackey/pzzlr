@@ -1,10 +1,12 @@
 <script lang="ts">
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.svg';
+	import ladderLogo from '$lib/assets/ladder-logo.svg';
 	import { authClient } from '$lib/auth-client';
 	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 	import { theme } from '$lib/theme.svelte';
 	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 
 	let { children, data } = $props();
 
@@ -36,14 +38,46 @@
 	}}
 />
 
+<!-- The link preview is shared by every page: a page can name its own title
+     and description, but none of them has an image of its own yet. og:image
+     has to be an absolute URL — Facebook and most other scrapers won't
+     resolve a relative one. The image and the icons are rendered by
+     marketing/render.sh. The .ico is listed first, with a size, so any
+     browser that can draw the SVG favicon prefers that one. -->
 <svelte:head>
-	<link rel="icon" href={favicon} />
+	<link rel="icon" href="/favicon.ico" sizes="32x32" />
+	<link rel="icon" href={favicon} type="image/svg+xml" />
+	<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+	<link rel="manifest" href="/manifest.webmanifest" />
+	<link
+		rel="preload"
+		href="/fonts/Inter-Regular.woff2"
+		as="font"
+		type="font/woff2"
+		crossorigin="anonymous"
+	/>
+	<link
+		rel="preload"
+		href="/fonts/Inter-Bold.woff2"
+		as="font"
+		type="font/woff2"
+		crossorigin="anonymous"
+	/>
+	<meta property="og:site_name" content="Pzzlr" />
+	<meta property="og:image" content="{page.url.origin}/og.png" />
+	<meta property="og:image:width" content="1200" />
+	<meta property="og:image:height" content="630" />
+	<meta
+		property="og:image:alt"
+		content="A word ladder climbing from COLD to WARM, one letter at a time."
+	/>
+	<meta name="twitter:card" content="summary_large_image" />
 </svelte:head>
 
 <nav>
 	<div class="nav-inner">
 		<a class="brand" href={resolve('/')} onclick={closeMenu}>
-			<span class="brand-mark" aria-hidden="true">🪜</span>Pzzlr
+			<img class="brand-mark" src={ladderLogo} alt="" width="512" height="512" />Pzzlr
 		</a>
 
 		<div class="nav-right">
@@ -56,16 +90,16 @@
 				{/if}
 			</div>
 
-			<!-- The one loud thing on the bar, and never dropped into the menu
-			     at narrow widths — but what it points at depends on who's
-			     looking. Signed out it's Create, the invitation: see /create,
-			     which makes the case for an account rather than demanding one.
-			     Signed in it's the shelf they came back for, and making another
-			     game is a button away once they're on it (see /games). -->
+			<!-- A plain link, never dropped into the menu at narrow widths — but
+			     what it is depends on who's looking. Signed out it's Create: see
+			     /create, which makes the case for an account rather than demanding
+			     one. Signed in it's My games, the shelf they came back for, and
+			     making another game is a link away once they're on it (see
+			     /games). -->
 			{#if data.user}
-				<a class="btn btn-primary btn-sm" href={resolve('/games')} onclick={closeMenu}>My games</a>
+				<a class="nav-link" href={resolve('/games')} onclick={closeMenu}>My games</a>
 			{:else}
-				<a class="btn btn-primary btn-sm" href={resolve('/create')} onclick={closeMenu}>Create</a>
+				<a class="nav-link" href={resolve('/create')} onclick={closeMenu}>Create</a>
 			{/if}
 
 			{#if data.user}
@@ -261,7 +295,7 @@
 		   the pages doing that math just end up a little taller than exact. */
 		min-height: var(--nav-h);
 		box-sizing: border-box;
-		padding: var(--space-3) var(--space-5);
+		padding: var(--space-2) var(--space-5);
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
@@ -270,24 +304,32 @@
 	}
 	/* The wordmark is sized against the bar's height budget rather than
 	   against the links beside it: --nav-h is 5rem and .nav-inner spends
-	   var(--space-3) top and bottom, which leaves 56px of content box. At
-	   1.95rem on a line-height of 1 the lockup draws 31px, so it can grow
-	   this far without the bar following it — line-height: 1 is what keeps
-	   that true, since the inherited 1.6 would put the line box at 50px and
-	   leave almost nothing in hand. The ladder is set a size up again: an
-	   emoji reads smaller than a capital at the same type size. */
+	   var(--space-2) top and bottom, which leaves 64px of content box. The
+	   text's line box is the tallest thing in the lockup — 62px at 3.9rem
+	   here, and 38px of the phone bar's 40px — and line-height: 1 keeps it
+	   at its font size, where the inherited 1.6 would add height the bar
+	   doesn't have. The ladder is sized so the drawn ladder stands exactly
+	   as tall as the capital P: Inter's caps are 0.7275em (see pz-glyph.ts)
+	   and the drawing fills 84% of its box (y 18 to 448 of 512), so the box
+	   is 0.866em. The drawing also sits 4.5% of its box above centre, so
+	   it's moved down that much to line up with the letters. It leaves a
+	   sixth of the width empty at each side, so the gap is small: that margin
+	   already reads as space. */
 	.brand {
-		font-weight: 700;
-		color: var(--color-text);
-		font-size: 1.95rem;
-		line-height: 1;
 		display: inline-flex;
 		align-items: center;
-		gap: 0.3rem;
+		gap: 0.07em;
+		font-size: 3.9rem;
+		font-weight: 550;
+		line-height: 1;
+		color: var(--color-text);
 	}
 	.brand-mark {
-		font-size: 1.15em;
-		line-height: 1;
+		width: 0.866em;
+		height: 0.866em;
+		flex-shrink: 0;
+		padding: 0px;
+		translate: 0 4.5%;
 	}
 	.brand:hover {
 		text-decoration: none;
@@ -297,9 +339,13 @@
 		display: flex;
 		align-items: center;
 		gap: var(--space-6);
+	}
+	/* Heavier than body text: on a bar this tall, links at the body's weight
+	   read as a caption running along the top. .nav-link is Create or My
+	   games, which sits outside .nav-links so it stays on the bar on phones. */
+	.nav-links,
+	.nav-link {
 		font-size: 1.05rem;
-		/* Heavier than body text: on a bar this tall, links at the body's
-		   weight read as a caption running along the top. */
 		font-weight: 700;
 	}
 
@@ -344,7 +390,7 @@
 			gap: var(--space-3);
 		}
 		.brand {
-			font-size: 1.3rem;
+			font-size: 2.4rem;
 		}
 		.btn-sm {
 			padding: 0.45rem 0.9rem;

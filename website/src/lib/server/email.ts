@@ -111,10 +111,14 @@ export function emailChangeEmail(url: string, newEmail: string): Omit<OutgoingEm
 	};
 }
 
-/** Inline styles and a plain anchor: mail clients strip stylesheets, and several ignore <button> entirely. */
+/**
+ * Inline styles and a plain anchor: mail clients strip stylesheets, and several ignore <button> entirely.
+ * The mark is a hosted PNG (marketing/render.sh makes it) because mail clients don't draw SVG; its
+ * address comes from the action link, which is always absolute and always on this site.
+ */
 function layout(intro: string, url: string, action: string, outro: string): string {
 	return `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:15px;line-height:1.5;color:#201d2b">
-	<p style="font-weight:700;font-size:17px">🪜 Pzzlr</p>
+	<p><img src="${new URL(url).origin}/email-mark.png" width="48" height="48" alt="Pzzlr" style="display:block;border:0" /></p>
 	${intro}
 	<p><a href="${url}" style="display:inline-block;padding:0.6rem 1rem;border-radius:8px;background:#7c3aed;color:#fff;text-decoration:none;font-weight:700">${action}</a></p>
 	<p style="color:#6b6578;font-size:13px">Or paste this into your browser:<br />${url}</p>

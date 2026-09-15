@@ -7,10 +7,14 @@
 	<meta name="description" content="What Pzzlr stores, why, and how to have it deleted." />
 </svelte:head>
 
-<div class="container prose">
-	<h1>Privacy</h1>
-	<p class="updated">Last updated 29 August 2026</p>
+<header>
+	<div class="container prose reading page-head">
+		<h1>Privacy</h1>
+		<p class="updated">Last updated 29 August 2026</p>
+	</div>
+</header>
 
+<div class="container prose reading">
 	<p>
 		Pzzlr is a word game. It has no advertising, no analytics, and no third-party trackers, and it
 		doesn't sell or share your information. This page describes everything it actually stores.

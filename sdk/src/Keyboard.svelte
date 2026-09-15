@@ -75,6 +75,16 @@
 		flex-direction: column;
 		gap: 0.5rem;
 		flex: 0 0 auto;
+		/* As wide as the widget, up to --keyboard-max when a widget sets one,
+		   centred under the board. Only quordle does: its root is wider than
+		   the other games' to fit four boards, and without a cap its keys
+		   stretched with it. A width cap rather than a wrapper, so this stays
+		   the widget's last flex child and the phone rule below can still pin
+		   it to the bottom of the screen. */
+		width: 100%;
+		max-width: var(--keyboard-max, none);
+		margin-inline: auto;
+		box-sizing: border-box;
 		/* Last child of the flex column, and the only one that doesn't flex —
 		   so it takes its natural height off the bottom and .scroll-area gets
 		   the rest. That's what puts it on the viewport's bottom edge when

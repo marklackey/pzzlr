@@ -305,7 +305,9 @@
 		box-sizing: border-box;
 	}
 	.absurdle {
-		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+		/* A page can set --pzzlr-font to put the board in its own typeface; the
+		   Pzzlr site does, for Inter. Anywhere else it's the system font. */
+		font-family: var(--pzzlr-font, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
 		width: 100%;
 		max-width: 40rem;
 		box-sizing: border-box;

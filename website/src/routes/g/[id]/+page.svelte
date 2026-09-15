@@ -11,7 +11,12 @@
 
 	/** '' means today's board — the widgets read an empty date as "today". */
 	const day = $derived(data.day ?? '');
-	const hasSidePanel = $derived(data.canManage || data.archive.length > 0);
+	// Only the owner's manage panel sits beside the board. Past puzzles is a
+	// link on the title row, so a player who can't manage the game gets the
+	// board on its own, with nothing under it to push the keyboard away.
+	const hasSidePanel = $derived(data.canManage);
+	/** Width of the title row's link and star, handed to the widget as --pzzlr-title-inset. */
+	let cornerWidth = $state(0);
 
 	const tagName = $derived(
 		data.config.mode === 'wordle'
@@ -170,14 +175,26 @@
 	{/if}
 
 	<div class="play-area" class:solo={!hasSidePanel} class:multi={data.config.mode === 'quordle'}>
-		<div class="board-card" class:multi={data.config.mode === 'quordle'}>
-			<!-- Absolutely placed in the card's corner, on the line the widget
-			     draws the game's name on: a star is worth no row of its own,
-			     and a row under the board costs the play area height it can't
-			     spare on a phone. -->
-			{#if data.user}
-				<div class="board-favorite">
-					<FavoriteButton gameId={data.config.id} favorited={data.favorited} />
+		<div
+			class="board-card"
+			class:multi={data.config.mode === 'quordle'}
+			style:--pzzlr-title-inset={cornerWidth
+				? `calc(${cornerWidth}px + var(--space-3))`
+				: undefined}
+		>
+			<!-- Past puzzles and the star, at the right end of the line the widget
+			     draws the game's name on: neither is worth a row of its own, and a
+			     row under the board costs the play area height it can't spare on a
+			     phone. Their width goes to the widget, so a long name wraps before
+			     it reaches them. -->
+			{#if data.user || data.archive.length > 0}
+				<div class="board-corner" bind:clientWidth={cornerWidth}>
+					{#if data.archive.length > 0}
+						<a class="archive-link" href={archiveHref}>Past puzzles</a>
+					{/if}
+					{#if data.user}
+						<FavoriteButton gameId={data.config.id} favorited={data.favorited} />
+					{/if}
 				</div>
 			{/if}
 			<!-- Keyed on the day so opening one from the archive builds a new
@@ -223,26 +240,9 @@
 			{/key}
 		</div>
 
-		<!-- One column beside the board, rather than four loose cards flowing
-		     into whichever grid cell came next — which is how the archive ended
-		     up under the board, below the delete button, where nobody found it.
-		     Past puzzles come first: it's the half of this panel a player who
-		     doesn't own the game can use. -->
+		<!-- The owner's manage panel, in one column beside the board. -->
 		{#if hasSidePanel}
 			<div class="side">
-				<!-- A link, not the list: the days themselves get their own page,
-				     which is what you want on a phone where anything sharing the
-				     screen with a full-height board is a scroll from invisible. -->
-				{#if data.archive.length > 0}
-					<a class="archive-link card" href={archiveHref}>
-						<span>
-							<strong>Past puzzles</strong>
-							<span class="archive-count">{data.archive.length} days to play</span>
-						</span>
-						<span aria-hidden="true">→</span>
-					</a>
-				{/if}
-
 				{#if data.canManage}
 					<div class="manage card">
 						{#if editing}
@@ -408,11 +408,21 @@
 			grid-template-columns: minmax(20rem, 26rem) 1fr;
 		}
 	}
-	.board-favorite {
+	/* Sits on the card's padding edge, level with the top of the widget's
+	   game name, so it shares that line rather than floating in the corner. */
+	.board-corner {
 		position: absolute;
-		top: var(--space-2);
-		right: var(--space-2);
+		top: var(--card-pad);
+		right: var(--card-pad);
 		z-index: 1;
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+	}
+	.archive-link {
+		font-size: 0.9rem;
+		font-weight: 600;
+		white-space: nowrap;
 	}
 	.board-card {
 		position: relative;
@@ -420,7 +430,10 @@
 		border: 1px solid var(--color-border);
 		border-radius: var(--radius-md);
 		box-shadow: var(--shadow-md);
-		padding: var(--space-3);
+		/* One value for the card's padding and the corner's inset, so the
+		   corner stays on the widget's edge at every size below. */
+		--card-pad: var(--space-3);
+		padding: var(--card-pad);
 		width: 100%;
 		box-sizing: border-box;
 	}
@@ -431,7 +444,15 @@
 	@media (min-width: 860px) {
 		.board-card:not(.multi) {
 			width: min(100%, 26rem);
-			padding: var(--space-6);
+			--card-pad: var(--space-6);
+		}
+		/* Quordle's card stays wide for its four boards, but its keyboard is
+		   held to the width the single-board card above leaves its widget —
+		   26rem less that padding and the 1px border on each side — so every
+		   game's keyboard is the same size here. It goes in as a custom
+		   property because the keyboard is inside the widget's shadow root. */
+		.board-card.multi {
+			--pzzlr-keyboard-max: calc(26rem - 2 * var(--space-6) - 2px);
 		}
 	}
 	/* A quordle widget's own board grid handles its responsive layout (see
@@ -465,7 +486,7 @@
 			padding: var(--space-3) var(--space-2);
 		}
 		.board-card {
-			padding: var(--space-2);
+			--card-pad: var(--space-2);
 			min-height: calc(100dvh - var(--nav-h) - var(--space-3) * 2);
 			display: flex;
 			flex-direction: column;
@@ -487,26 +508,6 @@
 	}
 	.manage {
 		box-sizing: border-box;
-	}
-	.archive-link {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--space-3);
-		color: var(--color-text);
-		text-decoration: none;
-	}
-	.archive-link:hover {
-		border-color: var(--color-primary);
-	}
-	.archive-link span {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-1);
-	}
-	.archive-count {
-		font-size: 0.85rem;
-		color: var(--color-text-muted);
 	}
 	/* Above the board, and only on a past day — see the markup. */
 	.past-bar {

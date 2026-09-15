@@ -1,5 +1,30 @@
+/* Inter, served from static/fonts: the same face as the Pz mark and the
+   marketing images, so the wordmark beside the tile is set in the tile's own
+   letters, and the site reads the same on every device. Two static weights
+   only, so anything asking for 600 is drawn at 700. swap shows the system
+   font until Inter arrives, rather than no text. */
+@font-face {
+	font-family: 'Inter';
+	src: url('/fonts/Inter-Regular.woff2') format('woff2');
+	font-weight: 400;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'Inter';
+	src: url('/fonts/Inter-Bold.woff2') format('woff2');
+	font-weight: 700;
+	font-style: normal;
+	font-display: swap;
+}
+
 :root {
-	--font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+	--font-sans:
+		'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+	/* The game widgets read this when a page sets it (see the root rule in
+	   each of sdk/src's four widgets), so the boards on this site are in
+	   Inter too. Embedded on anyone else's site they keep the system font. */
+	--pzzlr-font: var(--font-sans);
 
 	/* One grey, used consistently. The page is a cool light grey and white
 	   cards sit on it; the shadows below are tinted to match rather than
@@ -57,6 +82,35 @@
 	--color-wordle: #0f7d6b;
 	--color-quordle: #6257d2;
 	--color-absurdle: #8c4d9e;
+
+	/* The wash behind the home page's hero and every other page's header band:
+	   the four mode hues, mixed down to a tint against the page so they read as
+	   light rather than as four competing blocks. Colour on this site comes from
+	   the games (see --color-primary), and color-mix keeps each tint tied to its
+	   hue, so when a mode colour moves its tint moves with it — these four have
+	   moved more than once. Dark needs no second copy: it redefines the hues
+	   and --color-bg, and the wash follows them. */
+	--page-wash:
+		radial-gradient(
+			52rem 26rem at 8% -12%,
+			color-mix(in srgb, var(--color-ladder) 30%, transparent),
+			transparent 68%
+		),
+		radial-gradient(
+			44rem 24rem at 92% -8%,
+			color-mix(in srgb, var(--color-absurdle) 26%, transparent),
+			transparent 66%
+		),
+		radial-gradient(
+			38rem 20rem at 62% 6%,
+			color-mix(in srgb, var(--color-wordle) 18%, transparent),
+			transparent 62%
+		),
+		linear-gradient(
+			180deg,
+			color-mix(in srgb, var(--color-quordle) 10%, var(--color-bg)),
+			var(--color-bg) 74%
+		);
 
 	/* Reserved for state. No mode may borrow these. */
 	--color-success: #1a7a45;
@@ -273,6 +327,66 @@ a:hover {
    line. */
 .prose {
 	max-width: 44rem;
+}
+
+/* The reading pages (about, embed, support, privacy, terms, sign-in) start
+   at the nav bar's left edge instead of centring in the window. The nav's
+   content is a 62rem band centred on the page with the same side padding as
+   .container, so this margin puts the column's edge on the wordmark's. The
+   header band's wash starts on that edge (.page-head), and the title and
+   every line of text below sit --space-6 inside it, so they share one left
+   edge. The percentage is of the page's width, which leaves the scrollbar
+   out of it where 100vw would not. */
+.reading {
+	margin-left: max(0px, calc((100% - 62rem) / 2));
+	margin-right: auto;
+	padding-left: calc(var(--space-5) + var(--space-6));
+	padding-right: calc(var(--space-5) + var(--space-6));
+}
+/* Wider by that inset on each side, so a line of prose is as long as before. */
+.prose.reading {
+	max-width: calc(44rem + 2 * var(--space-6));
+}
+/* Phones: the column runs edge to edge and the band with it, and the text
+   takes the nav bar's own side padding, so it stays on the wordmark's edge. */
+@media (max-width: 639px) {
+	.reading {
+		padding-left: var(--space-4);
+		padding-right: var(--space-4);
+	}
+}
+
+/* The band behind a page's title, in the home page's wash, so the pages
+   after it aren't grey from top to bottom. The wash is painted on a ::before
+   whose edges sit on the column's outer padding, the wordmark's edge on the
+   left, so the title inside it is inset by the same --space-6 as the text
+   below it. */
+.page-head {
+	position: relative;
+	isolation: isolate;
+	margin-top: var(--space-8);
+	padding-top: var(--space-8);
+	padding-bottom: var(--space-8);
+}
+.page-head::before {
+	content: '';
+	position: absolute;
+	inset: 0 var(--space-5);
+	z-index: -1;
+	border-radius: var(--radius-lg);
+	background: var(--page-wash);
+}
+.page-head > :last-child {
+	margin-bottom: 0;
+}
+@media (max-width: 639px) {
+	.page-head {
+		margin-top: 0;
+	}
+	.page-head::before {
+		inset: 0;
+		border-radius: 0;
+	}
 }
 .prose h2 {
 	font-size: 1.15rem;

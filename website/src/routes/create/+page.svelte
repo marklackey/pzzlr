@@ -7,7 +7,7 @@
 </script>
 
 <div class="container form-page">
-	<h1>Create a game</h1>
+	<h1>Create</h1>
 
 	{#if !data.signedIn}
 		<!-- What the form would let them do, for someone who can't use it yet.

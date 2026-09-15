@@ -20,6 +20,13 @@
 	   --tile-border, --tile-radius, --tile-font, --visible-rows) so a widget
 	   changes the shape of its board by changing those, not this. */
 	:global {
+		/* Room at the end of the game's name for whatever a page lays over the
+		   top right of the widget — the Pzzlr site puts Past puzzles and the
+		   favourite star there — so a long name wraps short of it rather than
+		   running underneath. Nothing sets it on an ordinary embed. */
+		.game-name {
+			padding-right: var(--pzzlr-title-inset, 0px);
+		}
 		.board {
 			display: flex;
 			flex-direction: column;
