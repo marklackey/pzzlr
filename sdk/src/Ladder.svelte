@@ -234,15 +234,19 @@
 	let scrollArea = $state<HTMLElement | undefined>(undefined);
 	let boardEl = $state<HTMLElement | undefined>(undefined);
 	let liveEnd = $state<HTMLElement | undefined>(undefined);
+	let hintEl = $state<HTMLElement | undefined>(undefined);
 
 	$effect(() => {
 		rows.length;
+		// The hint, while it's showing, sits under the input row — so it's the
+		// bottom of the ladder until the first guess takes it away.
+		const bottom = hintEl ?? liveEnd;
 		// Which of the two actually scrolls depends on the breakpoint (the
 		// board off phones, the whole area on one — see the CSS), and asking a
 		// non-scrolling element to scroll is a no-op, so just ask both rather
 		// than duplicating that media query in JS.
-		scrollIntoViewWithin(boardEl, liveEnd);
-		scrollIntoViewWithin(scrollArea, liveEnd);
+		scrollIntoViewWithin(boardEl, bottom);
+		scrollIntoViewWithin(scrollArea, bottom);
 	});
 
 	loadPuzzle();
@@ -328,14 +332,19 @@
 						{/each}
 					</div>
 				{:else if status === 'playing'}
-					<div class="row">
+					<div class="row" bind:this={liveEnd}>
 						{#each Array.from({ length: puzzleLength }) as _, i (i)}
 							<div class="tile input">{currentGuess[i]?.toUpperCase() ?? ''}</div>
 						{/each}
 					</div>
-					<p class="hint" bind:this={liveEnd}>
-						Next: change one letter from {rows[rows.length - 1].toUpperCase()}.
-					</p>
+					<!-- Once per puzzle: the rule is worth saying before the first
+					     step, and only noise under every one after it. Counted off
+					     accepted guesses, so a resumed ladder doesn't bring it back. -->
+					{#if guessesMade() === 0}
+						<p class="hint" bind:this={hintEl}>
+							Next: change one letter from {rows[rows.length - 1].toUpperCase()}.
+						</p>
+					{/if}
 				{/if}
 			</div>
 
