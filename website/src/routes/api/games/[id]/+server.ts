@@ -16,8 +16,8 @@ export const GET: RequestHandler = async ({ params, request, locals }) => {
 		throw error(404, `no game with id "${params.id}"`);
 	}
 
-	// embedKeyId/embedKey are a management concern for the owner's /g/[id]
-	// page, never part of this general-purpose metadata response. Setting
+	// embedKeyId/embedKey are a management concern for the owner's
+	// /g/[id]/edit page, never part of this general-purpose metadata response. Setting
 	// them undefined (rather than destructuring them off) drops the keys
 	// entirely once JSON.stringify runs. target is stripped the same way
 	// for a wordle game's non-manager viewers — see withoutSecret.

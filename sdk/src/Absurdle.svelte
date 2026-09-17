@@ -19,7 +19,7 @@
 		apibase?: string;
 		/** Id of a stored game config (mode: "absurdle"). See Ladder.svelte for why this is required. */
 		game: string;
-		/** Required for a private game — see the game's "Manage this game" panel. */
+		/** Required for a private game — see the embed key on the game's edit page (/g/[id]/edit). */
 		apikey?: string;
 	}>();
 

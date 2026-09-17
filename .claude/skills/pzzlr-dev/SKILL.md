@@ -186,7 +186,7 @@ curl -s "http://localhost:5173/api/games/<id>/wordle/reveal?token=$TOKEN" | pyth
 
 ## Setting up a scenario that needs a specific/rare game, without logging in
 
-`/create` and the "Manage this game" panel on `/g/[id]` require a signed-in session, and creating an account or signing in isn't something to do just to poke at the UI. To put a specific scenario in front of Mark — a particular word length, dictionary size, or mode that doesn't happen to already exist among the current games — insert a throwaway row directly into `game_config`, view it at `/g/<id>` (game pages themselves don't require auth for public games), then delete the row:
+`/create` and a game's edit page at `/g/[id]/edit` require a signed-in session, and creating an account or signing in isn't something to do just to poke at the UI. To put a specific scenario in front of Mark — a particular word length, dictionary size, or mode that doesn't happen to already exist among the current games — insert a throwaway row directly into `game_config`, view it at `/g/<id>` (game pages themselves don't require auth for public games), then delete the row:
 
 ```bash
 cd website && npx wrangler d1 execute pzzlr --local --command "insert into game_config (id, name, mode, target, length, dictionary_size, min_steps, rungs_given, max_guesses, public, created_at) values ('qa-probe', 'QA probe', 'ladder', 'blustery', 8, 50, 4, 1, 6, 1, unixepoch()*1000);"

@@ -1,39 +1,18 @@
 <script lang="ts">
-	import GameForm from '$lib/components/GameForm.svelte';
-	import InfoTooltip from '$lib/components/InfoTooltip.svelte';
 	import FavoriteButton from '$lib/components/FavoriteButton.svelte';
-	import { page } from '$app/state';
 	import { theme } from '$lib/theme.svelte';
 	import { resolve } from '$app/paths';
-	import { DICTIONARY_LABELS, HARD_MODE_LABELS, MODE_LABELS, isDictionarySize } from '$lib/types';
 
-	let { data, form } = $props();
+	let { data } = $props();
 
 	/** '' means today's board — the widgets read an empty date as "today". */
 	const day = $derived(data.day ?? '');
-	// Only the owner's manage panel sits beside the board. Past puzzles is a
-	// link on the title row, so a player who can't manage the game gets the
-	// board on its own, with nothing under it to push the keyboard away.
-	const hasSidePanel = $derived(data.canManage);
-	/** Width of the title row's link and star, handed to the widget as --pzzlr-title-inset. */
+	/** Width of the title row's links and star, handed to the widget as --pzzlr-title-inset. */
 	let cornerWidth = $state(0);
-
-	const tagName = $derived(
-		data.config.mode === 'wordle'
-			? 'pzzlr-wordle'
-			: data.config.mode === 'quordle'
-				? 'pzzlr-quordle'
-				: data.config.mode === 'absurdle'
-					? 'pzzlr-absurdle'
-					: 'pzzlr-ladder'
-	);
-
-	function dictionaryLabel(size: number): string {
-		return isDictionarySize(size) ? DICTIONARY_LABELS[size] : `size ${size}`;
-	}
 
 	const todayHref = $derived(resolve('/g/[id]', { id: data.config.id }));
 	const archiveHref = $derived(resolve('/g/[id]/archive', { id: data.config.id }));
+	const editHref = $derived(resolve('/g/[id]/edit', { id: data.config.id }));
 
 	// Plain calendar dates, formatted in UTC: rendering them in the reader's
 	// zone would show the day before to anyone west of it, and the puzzle
@@ -94,65 +73,13 @@
 			if (revealingDay === forDay) revealingDay = null;
 		}
 	}
-
-	// Defaults to the read-only summary; the edit form only takes over once
-	// asked for, and hands back to the summary on a successful save.
-	let editing = $state(false);
-	$effect(() => {
-		if (!form?.success) return;
-		editing = false;
-		resetOwnAttempt();
-	});
-
-	/**
-	 * Drops this browser's attempt token for the game just edited, so the
-	 * widget starts a fresh attempt on the edited version instead of resuming
-	 * one played against the old settings.
-	 *
-	 * Only this browser: an attempt is keyed by a token in local storage
-	 * rather than an account (see the widgets' attemptToken), so there's no
-	 * server-side way to pick out "the owner's" attempt — and no reason to,
-	 * since anyone else mid-puzzle is meant to keep the game they started
-	 * (see attempt-continuity.ts). The person who just edited it is the one
-	 * at this keyboard.
-	 */
-	function resetOwnAttempt() {
-		for (const mode of ['ladder', 'wordle', 'quordle', 'absurdle']) {
-			try {
-				localStorage.removeItem(`pzzlr-${mode}-token:${data.config.id}`);
-			} catch {
-				// Storage unavailable (private browsing) means there was no
-				// stored attempt to clear either.
-			}
-		}
-		// The widget reads its token once on load, so it needs remounting.
-		location.reload();
-	}
-
-	let copied = $state(false);
-	async function copySnippet() {
-		const origin = page.url.origin;
-		// Built from pieces that never spell out "<script" or "</script" in
-		// one contiguous literal — Svelte's parser scans .svelte source
-		// text for those tags before it understands JS, so a literal
-		// occurrence (even inside a string) breaks parsing of this file.
-		const scriptTag =
-			'<scr' + `ipt type="module" src="${origin}/sdk/pzzlr-sdk.js">` + '</scr' + 'ipt>';
-		const snippet = [
-			scriptTag,
-			`<${tagName} apibase="${origin}" game="${data.config.id}" apikey="${data.config.embedKey}"></${tagName}>`
-		].join('\n');
-		await navigator.clipboard.writeText(snippet);
-		copied = true;
-		setTimeout(() => (copied = false), 1500);
-	}
 </script>
 
 <svelte:head>
 	<script type="module" src="/sdk/pzzlr-sdk.js"></script>
 </svelte:head>
 
-<div class="container" class:wide={hasSidePanel || data.config.mode === 'quordle'}>
+<div class="container" class:wide={data.config.mode === 'quordle'}>
 	<!-- Kept for the document outline / screen readers, but not painted: the
 	     widget renders this same name itself (see the game-name heading in
 	     sdk/src/*.svelte), so showing it here too just repeats it. -->
@@ -185,7 +112,7 @@
 		</div>
 	{/if}
 
-	<div class="play-area" class:solo={!hasSidePanel} class:multi={data.config.mode === 'quordle'}>
+	<div class="play-area">
 		<div
 			class="board-card"
 			class:multi={data.config.mode === 'quordle'}
@@ -193,15 +120,19 @@
 				? `calc(${cornerWidth}px + var(--space-3))`
 				: undefined}
 		>
-			<!-- Past puzzles and the star, at the right end of the line the widget
-			     draws the game's name on: neither is worth a row of its own, and a
-			     row under the board costs the play area height it can't spare on a
-			     phone. Their width goes to the widget, so a long name wraps before
-			     it reaches them. -->
+			<!-- Edit, past puzzles and the star, at the right end of the line the
+			     widget draws the game's name on: none is worth a row of its own,
+			     and anything under the board costs the play area height it can't
+			     spare on a phone — which is why the owner's settings are a page of
+			     their own rather than a panel down there. Their width goes to the
+			     widget, so a long name wraps before it reaches them. -->
 			{#if data.user || data.archive.length > 0}
 				<div class="board-corner" bind:clientWidth={cornerWidth}>
+					{#if data.canManage}
+						<a class="corner-link" href={editHref}>Edit</a>
+					{/if}
 					{#if data.archive.length > 0}
-						<a class="archive-link" href={archiveHref}>Past puzzles</a>
+						<a class="corner-link" href={archiveHref}>Past puzzles</a>
 					{/if}
 					{#if data.user}
 						<FavoriteButton gameId={data.config.id} favorited={data.favorited} />
@@ -250,157 +181,6 @@
 				{/if}
 			{/key}
 		</div>
-
-		<!-- The owner's manage panel, in one column beside the board. -->
-		{#if hasSidePanel}
-			<div class="side">
-				{#if data.canManage}
-					<div class="manage card">
-						{#if editing}
-							<div class="manage-header">
-								<h2>Edit game</h2>
-								<button
-									type="button"
-									class="btn btn-secondary btn-sm"
-									onclick={() => (editing = false)}
-								>
-									Cancel
-								</button>
-							</div>
-							<form method="post" action="?/update">
-								<GameForm
-									graphStats={data.graphStats}
-									submitLabel="Save changes"
-									mode={data.config.mode}
-									target={data.config.target}
-									length={data.config.length}
-									dictionarySize={data.config.dictionarySize}
-									minSteps={data.config.minSteps}
-									rungsGiven={data.config.rungsGiven}
-									maxGuesses={data.config.maxGuesses}
-									boardCount={data.config.boardCount}
-									hardMode={data.config.hardMode}
-									name={data.config.name}
-									isPrivate={!data.config.public}
-								/>
-							</form>
-						{:else}
-							<div class="manage-header">
-								<h2>{data.config.name ?? 'Untitled game'}</h2>
-								<button
-									type="button"
-									class="btn btn-secondary btn-sm"
-									onclick={() => (editing = true)}
-								>
-									Edit
-								</button>
-							</div>
-							<dl class="summary">
-								<div>
-									<dt>Type</dt>
-									<dd>{MODE_LABELS[data.config.mode]}</dd>
-								</div>
-								{#if data.config.mode === 'ladder' || data.config.mode === 'wordle'}
-									<div>
-										<dt>{data.config.mode === 'wordle' ? 'Secret' : 'Target'}</dt>
-										<dd>
-											{#if data.config.target === null}
-												Daily (a new one every day)
-											{:else if data.config.mode === 'wordle'}
-												{data.config.target} (the same every day)
-											{:else}
-												{data.config.target}
-											{/if}
-										</dd>
-									</div>
-								{/if}
-								<div>
-									<dt>Dictionary</dt>
-									<dd>{dictionaryLabel(data.config.dictionarySize)}</dd>
-								</div>
-								{#if data.config.mode === 'ladder'}
-									<div>
-										<dt>Minimum steps</dt>
-										<dd>{data.config.minSteps}</dd>
-									</div>
-									<div>
-										<dt>Rungs given away</dt>
-										<dd>{data.config.rungsGiven}</dd>
-									</div>
-								{:else if data.config.mode === 'absurdle'}
-									<div>
-										<dt>Guesses allowed</dt>
-										<dd>No limit</dd>
-									</div>
-								{:else}
-									<div>
-										<dt>Guesses allowed</dt>
-										<dd>{data.config.maxGuesses}</dd>
-									</div>
-									{#if data.config.mode === 'quordle'}
-										<div>
-											<dt>Boards</dt>
-											<dd>{data.config.boardCount}</dd>
-										</div>
-									{/if}
-									{#if data.config.mode === 'wordle'}
-										<div>
-											<dt>Hard mode</dt>
-											<dd>{HARD_MODE_LABELS[data.config.hardMode]}</dd>
-										</div>
-									{/if}
-								{/if}
-								<div>
-									<dt>Visibility</dt>
-									<dd>
-										{data.config.public ? 'Public' : 'Private'}
-										<InfoTooltip label="What does private mean?">
-											A private game is only playable with its embed key — anyone without the key
-											sees a missing game, and it's left out of Explore.
-										</InfoTooltip>
-									</dd>
-								</div>
-							</dl>
-						{/if}
-					</div>
-
-					{#if !data.config.public}
-						<div class="embed-key">
-							<h3>Embed key</h3>
-							<p>
-								This game is private — the widget only loads for whoever has this key. Paste the
-								snippet below into any site.
-							</p>
-							<pre>{`<${tagName} apibase="${page.url.origin}" game="${data.config.id}" apikey="${data.config.embedKey}"></${tagName}>`}</pre>
-							<div class="key-actions">
-								<button type="button" class="btn btn-secondary btn-sm" onclick={copySnippet}>
-									{copied ? 'Copied!' : 'Copy embed snippet'}
-								</button>
-								<form method="post" action="?/regenerateKey">
-									<button type="submit" class="btn btn-secondary btn-sm">
-										Regenerate key (invalidates the old one)
-									</button>
-								</form>
-							</div>
-						</div>
-					{/if}
-
-					<form
-						method="post"
-						action="?/remove"
-						onsubmit={(e) => {
-							if (!confirm('Delete this game? This cannot be undone.')) e.preventDefault();
-						}}
-					>
-						<button type="submit" class="btn btn-danger">Delete game</button>
-					</form>
-
-					{#if form?.message}
-						<p class="error-text">{form.message}</p>
-					{/if}
-				{/if}
-			</div>
-		{/if}
 	</div>
 </div>
 
@@ -414,11 +194,6 @@
 		align-items: start;
 		gap: var(--space-6);
 	}
-	@media (min-width: 860px) {
-		.play-area:not(.solo):not(.multi) {
-			grid-template-columns: minmax(20rem, 26rem) 1fr;
-		}
-	}
 	/* Sits on the card's padding edge, level with the top of the widget's
 	   game name, so it shares that line rather than floating in the corner. */
 	.board-corner {
@@ -430,7 +205,7 @@
 		align-items: center;
 		gap: var(--space-3);
 	}
-	.archive-link {
+	.corner-link {
 		font-size: 0.9rem;
 		font-weight: 600;
 		white-space: nowrap;
@@ -448,10 +223,9 @@
 		width: 100%;
 		box-sizing: border-box;
 	}
-	/* The 26rem cap only makes sense once .play-area is actually two
-	   columns (see the min-width: 860px rule above it) — below that it's a
-	   single column already, and capping the widget's own width there just
-	   wastes the screen a phone or narrow tablet needs for its keyboard. */
+	/* The 26rem cap is for wide screens only — below 860px, capping the
+	   widget's own width just wastes the screen a phone or narrow tablet
+	   needs for its keyboard. */
 	@media (min-width: 860px) {
 		.board-card:not(.multi) {
 			width: min(100%, 26rem);
@@ -480,9 +254,9 @@
 
 	   `min-height`, not `height`, and that one word is the whole trick. At
 	   least a screenful, so the widget's keyboard starts on the bottom edge
-	   of the screen and the manage panel starts just below the fold — but
-	   free to grow past it, so a board taller than the screen makes the
-	   *page* longer instead of scrolling inside its own pane. A fixed height
+	   of the screen — but free to grow past it, so a board taller than the
+	   screen makes the *page* longer instead of scrolling inside its own
+	   pane. A fixed height
 	   gave the widget a box smaller than its content and put a second
 	   scroller on the screen, and the thumb was always on the wrong one:
 	   everything below the board sat behind a gesture that never reached it.
@@ -511,15 +285,6 @@
 			min-height: 0;
 		}
 	}
-	.side {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-6);
-		min-width: 0;
-	}
-	.manage {
-		box-sizing: border-box;
-	}
 	/* Above the board, and only on a past day — see the markup. */
 	.past-bar {
 		display: flex;
@@ -541,79 +306,5 @@
 	}
 	.past-error {
 		color: var(--color-error);
-	}
-	.manage-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--space-3);
-	}
-	.manage-header h2 {
-		font-size: 1.1rem;
-		margin: 0;
-	}
-	.manage form {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-4);
-		margin-top: var(--space-4);
-	}
-	.summary {
-		margin: var(--space-4) 0 0;
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-2);
-	}
-	.summary > div {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		gap: var(--space-3);
-		font-size: 0.9rem;
-		padding: var(--space-2) 0;
-		border-bottom: 1px solid var(--color-border);
-	}
-	.summary dt {
-		color: var(--color-text-muted);
-	}
-	.summary dd {
-		margin: 0;
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		font-weight: 600;
-	}
-	.embed-key {
-		margin-top: var(--space-4);
-		padding-top: var(--space-4);
-		border-top: 1px solid var(--color-border);
-	}
-	.embed-key h3 {
-		font-size: 0.95rem;
-		margin: 0 0 var(--space-2);
-	}
-	.embed-key p {
-		font-size: 0.85rem;
-		color: var(--color-text-muted);
-		margin: 0 0 var(--space-2);
-	}
-	.embed-key pre {
-		background: var(--color-bg);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-sm);
-		padding: var(--space-2);
-		font-size: 0.75rem;
-		overflow-x: auto;
-		white-space: pre-wrap;
-		word-break: break-all;
-	}
-	.key-actions {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--space-2);
-		margin-top: var(--space-2);
-	}
-	.key-actions form {
-		margin: 0;
 	}
 </style>

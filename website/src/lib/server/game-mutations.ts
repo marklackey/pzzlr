@@ -14,7 +14,7 @@ type SessionUser = App.Locals['user'];
 
 /**
  * The four game-management mutations, shared by their /api/games route and
- * the /create and /g/[id] page's form actions — both are just different
+ * the /create and /g/[id]/edit page's form actions — both are just different
  * front ends onto the same create/edit/delete/rotate-key operations, so
  * the auth check, validation, and embed-key bookkeeping only need to live
  * once. Each throws a SvelteKit HttpError (via error()) on failure, same as

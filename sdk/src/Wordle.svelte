@@ -25,7 +25,7 @@
 		date?: string;
 		/** Comma-separated answer for a day that's over, drawn on the board rather than played for — set by the website's archive (see /g/[id]/archive). */
 		revealed?: string;
-		/** Required for a private game — see the game's "Manage this game" panel. */
+		/** Required for a private game — see the embed key on the game's edit page (/g/[id]/edit). */
 		apikey?: string;
 	}>();
 
